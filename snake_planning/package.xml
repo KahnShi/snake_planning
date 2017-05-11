@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package>
+  <name>snake_planning</name>
+  <version>0.0.0</version>
+  <description>Software of JSK lab for snake planning</description>
+
+  <maintainer email="shifan@jsk.imi.i.u-tokyo.ac.jp">Fan Shi</maintainer>
+
+  <license>BSD</license>
+
+  <url type="website">http://www.jsk.t.u-tokyo.ac.jp/</url>
+
+  <run_depend>leader_follow</run_depend>
+
+  <export>
+    <metapackage/>
+  </export>
+</package>
