@@ -1,4 +1,5 @@
 #include <leader_follow/LeaderFollower.h>
+using namespace leader_follower;
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "leader_follower");
