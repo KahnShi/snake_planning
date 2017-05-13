@@ -1,5 +1,5 @@
 #include <leader_follow/LeaderFollower.h>
-USING_NAMESPACE_QPOASES
+
 namespace leader_follower
 {
   LeaderFollower::LeaderFollower(ros::NodeHandle nh, ros::NodeHandle nhp): m_nh(nh), m_nhp(nhp)
@@ -30,15 +30,19 @@ namespace leader_follower
 
     /* Init value */
     m_task_start_flag = false;
-    m_snake_traj_param_x_ptr = new VectorXd(m_snake_traj_order);
-    m_snake_traj_param_y_ptr = new VectorXd(m_snake_traj_order);
-    m_snake_traj_param_z_ptr = new VectorXd(m_snake_traj_order);
-    m_snake_sample_x_ptr = new VectorXd(1);
-    m_snake_sample_y_ptr = new VectorXd(1);
-    m_snake_sample_z_ptr = new VectorXd(1);
+    m_snake_traj_param_x_ptr = new VectorXd(1);
+    m_snake_traj_param_y_ptr = new VectorXd(1);
+    m_snake_traj_param_z_ptr = new VectorXd(1);
+    m_snake_sample_pos_x_ptr = new VectorXd(1);
+    m_snake_sample_pos_y_ptr = new VectorXd(1);
+    m_snake_sample_pos_z_ptr = new VectorXd(1);
+    m_snake_sample_vel_x_ptr = new VectorXd(1);
+    m_snake_sample_vel_y_ptr = new VectorXd(1);
+    m_snake_sample_vel_z_ptr = new VectorXd(1);
     m_snake_sample_time_ptr = new VectorXd(1);
     m_snake_joint_states_vel_ptr = new double[m_n_snake_links];
     m_snake_joint_states_ang_ptr = new double[m_n_snake_links];
+    m_snake_traj_ptr = new SamplingBasedTrajectory(m_nh, m_nhp, 2);
 
     usleep(2000000);
     ROS_INFO("LeaderFollower initialization finished.");
@@ -83,49 +87,99 @@ namespace leader_follower
     }
     getSamplePoints(sample_points);
     visualizeSamplePoints();
+
+    /* Generate trajectory */
+    m_snake_traj_ptr->m_traj_order = m_snake_traj_order;
+    m_snake_traj_ptr->m_traj_dev_order = m_snake_traj_dev_order;
+    m_snake_traj_ptr->m_n_samples = m_n_snake_samples;
+    m_snake_traj_ptr->m_sample_x_pos_ptr = m_snake_sample_pos_x_ptr;
+    m_snake_traj_ptr->m_sample_y_pos_ptr = m_snake_sample_pos_y_ptr;
+    m_snake_traj_ptr->m_sample_z_pos_ptr = m_snake_sample_pos_z_ptr;
+    m_snake_traj_ptr->m_sample_x_vel_ptr = m_snake_sample_vel_x_ptr;
+    m_snake_traj_ptr->m_sample_y_vel_ptr = m_snake_sample_vel_y_ptr;
+    m_snake_traj_ptr->m_sample_z_vel_ptr = m_snake_sample_vel_z_ptr;
+    m_snake_traj_ptr->m_sample_time_ptr = m_snake_sample_time_ptr;
+    m_snake_traj_ptr->m_traj_param_x_ptr = m_snake_traj_param_x_ptr;
+    m_snake_traj_ptr->m_traj_param_y_ptr = m_snake_traj_param_y_ptr;
+    m_snake_traj_ptr->m_traj_param_z_ptr = m_snake_traj_param_z_ptr;
+
+    if (m_snake_traj_ptr->generateTrajectory()){
+      ROS_INFO("[LeaderFollower] Trajectory generation succeeded.");
+      m_snake_traj_ptr->trajectoryVisualization();
+    }
+    else
+      ROS_ERROR("[LeaderFollower] Trajectory generation failed");
   }
 
   void LeaderFollower::getSamplePoints(MatrixXd& points)
   {
-    delete m_snake_sample_x_ptr;
-    delete m_snake_sample_y_ptr;
-    delete m_snake_sample_z_ptr;
+    delete m_snake_sample_pos_x_ptr;
+    delete m_snake_sample_pos_y_ptr;
+    delete m_snake_sample_pos_z_ptr;
+    delete m_snake_sample_vel_x_ptr;
+    delete m_snake_sample_vel_y_ptr;
+    delete m_snake_sample_vel_z_ptr;
     delete m_snake_sample_time_ptr;
+    delete m_snake_traj_param_x_ptr;
+    delete m_snake_traj_param_y_ptr;
+    delete m_snake_traj_param_z_ptr;
 
     /* Add joints as points before sampling points in the trajectory */
-    int n_samples = points.rows();
+    int n_samples = points.rows() / 2;
     m_n_snake_samples = n_samples + m_n_snake_links;
-    m_snake_sample_x_ptr = new VectorXd(m_n_snake_samples);
-    m_snake_sample_y_ptr = new VectorXd(m_n_snake_samples);
-    m_snake_sample_z_ptr = new VectorXd(m_n_snake_samples);
+    m_snake_sample_pos_x_ptr = new VectorXd(m_n_snake_samples);
+    m_snake_sample_pos_y_ptr = new VectorXd(m_n_snake_samples);
+    m_snake_sample_pos_z_ptr = new VectorXd(m_n_snake_samples);
+    m_snake_sample_vel_x_ptr = new VectorXd(m_n_snake_samples);
+    m_snake_sample_vel_y_ptr = new VectorXd(m_n_snake_samples);
+    m_snake_sample_vel_z_ptr = new VectorXd(m_n_snake_samples);
     m_snake_sample_time_ptr = new VectorXd(m_n_snake_samples);
+    m_snake_traj_param_x_ptr = new VectorXd(m_snake_traj_order * (m_n_snake_samples - 1));
+    m_snake_traj_param_y_ptr = new VectorXd(m_snake_traj_order * (m_n_snake_samples - 1));
+    m_snake_traj_param_z_ptr = new VectorXd(m_snake_traj_order * (m_n_snake_samples - 1));
     /* add links positions */
     // todo: manually set as L shape
     // todo: here assume 4 links
-    // (*m_snake_sample_x_ptr)[3] = m_snake_odom.pose.pose.position.x;
-    // (*m_snake_sample_y_ptr)[3] = m_snake_odom.pose.pose.position.y;
-    // (*m_snake_sample_z_ptr)[3] = m_snake_odom.pose.pose.position.z;
-    (*m_snake_sample_x_ptr)[3] = 0.0;
-    (*m_snake_sample_y_ptr)[3] = 0.0;
-    (*m_snake_sample_z_ptr)[3] = 2.0;
-    (*m_snake_sample_x_ptr)[2] = -0.44;
-    (*m_snake_sample_y_ptr)[2] = 0.0;
-    (*m_snake_sample_z_ptr)[2] = 2.0;
-    (*m_snake_sample_x_ptr)[1] = -0.88;
-    (*m_snake_sample_y_ptr)[1] = 0.0;
-    (*m_snake_sample_z_ptr)[1] = 2.0;
-    (*m_snake_sample_x_ptr)[0] = -0.88;
-    (*m_snake_sample_y_ptr)[0] = -0.44;
-    (*m_snake_sample_z_ptr)[0] = 2.0;
+    // (*m_snake_sample_pos_x_ptr)[3] = m_snake_odom.pose.pose.position.x;
+    // (*m_snake_sample_pos_y_ptr)[3] = m_snake_odom.pose.pose.position.y;
+    // (*m_snake_sample_pos_z_ptr)[3] = m_snake_odom.pose.pose.position.z;
+    (*m_snake_sample_pos_x_ptr)[3] = 0.0;
+    (*m_snake_sample_pos_y_ptr)[3] = 0.0;
+    (*m_snake_sample_pos_z_ptr)[3] = 2.0;
+    (*m_snake_sample_pos_x_ptr)[2] = -0.44;
+    (*m_snake_sample_pos_y_ptr)[2] = 0.0;
+    (*m_snake_sample_pos_z_ptr)[2] = 2.0;
+    (*m_snake_sample_pos_x_ptr)[1] = -0.88;
+    (*m_snake_sample_pos_y_ptr)[1] = 0.0;
+    (*m_snake_sample_pos_z_ptr)[1] = 2.0;
+    (*m_snake_sample_pos_x_ptr)[0] = -0.88;
+    (*m_snake_sample_pos_y_ptr)[0] = -0.44;
+    (*m_snake_sample_pos_z_ptr)[0] = 2.0;
+
+    (*m_snake_sample_vel_x_ptr)[3] = 0.0;
+    (*m_snake_sample_vel_y_ptr)[3] = 0.0;
+    (*m_snake_sample_vel_z_ptr)[3] = 0.0;
+    (*m_snake_sample_vel_x_ptr)[2] = -10000.0;
+    (*m_snake_sample_vel_y_ptr)[2] = -10000.0;
+    (*m_snake_sample_vel_z_ptr)[2] = -10000.0;
+    (*m_snake_sample_vel_x_ptr)[1] = -10000.0;
+    (*m_snake_sample_vel_y_ptr)[1] = -10000.0;
+    (*m_snake_sample_vel_z_ptr)[1] = -10000.0;
+    (*m_snake_sample_vel_x_ptr)[0] = -10000.0;
+    (*m_snake_sample_vel_y_ptr)[0] = -10000.0;
+    (*m_snake_sample_vel_z_ptr)[0] = -10000.0;
     /* add sampling points from normal planning algorithm */
     for (int i = 0; i < n_samples; ++i){
-      (*m_snake_sample_x_ptr)[i+m_n_snake_links] = points(i, 0);
-      (*m_snake_sample_y_ptr)[i+m_n_snake_links] = points(i, 1);
-      (*m_snake_sample_z_ptr)[i+m_n_snake_links] = points(i, 2);
+      (*m_snake_sample_pos_x_ptr)[i+m_n_snake_links] = points(2*i, 0);
+      (*m_snake_sample_pos_y_ptr)[i+m_n_snake_links] = points(2*i, 1);
+      (*m_snake_sample_pos_z_ptr)[i+m_n_snake_links] = points(2*i, 2);
+      (*m_snake_sample_vel_x_ptr)[i+m_n_snake_links] = points(2*i+1, 0);
+      (*m_snake_sample_vel_y_ptr)[i+m_n_snake_links] = points(2*i+1, 1);
+      (*m_snake_sample_vel_z_ptr)[i+m_n_snake_links] = points(2*i+1, 2);
     }
 
     /* roughly estimate travel time */
-    (*m_snake_sample_time_ptr)[3] = 0.0;
+    (*m_snake_sample_time_ptr)[m_n_snake_links-1] = 0.0;
     for (int i = m_n_snake_links-2; i >= 0; --i){
       double dist = getPointsDistance(i+1, i);
       (*m_snake_sample_time_ptr)[i] = (*m_snake_sample_time_ptr)[i+1] - dist / m_snake_average_vel;
@@ -138,9 +192,9 @@ namespace leader_follower
 
   inline double LeaderFollower::getPointsDistance(int id_1, int id_2)
   {
-    return sqrt(pow((*m_snake_sample_x_ptr)[id_1] - (*m_snake_sample_x_ptr)[id_2], 2.0)
-                +pow((*m_snake_sample_y_ptr)[id_1] - (*m_snake_sample_y_ptr)[id_2], 2.0)
-                +pow((*m_snake_sample_z_ptr)[id_1] - (*m_snake_sample_z_ptr)[id_2], 2.0)
+    return sqrt(pow((*m_snake_sample_pos_x_ptr)[id_1] - (*m_snake_sample_pos_x_ptr)[id_2], 2.0)
+                +pow((*m_snake_sample_pos_y_ptr)[id_1] - (*m_snake_sample_pos_y_ptr)[id_2], 2.0)
+                +pow((*m_snake_sample_pos_z_ptr)[id_1] - (*m_snake_sample_pos_z_ptr)[id_2], 2.0)
                 );
   }
 
@@ -156,9 +210,9 @@ namespace leader_follower
 
     for (int i = 0; i < m_n_snake_samples; ++i){
       sample_point_marker.id = i;
-      sample_point_marker.pose.position.x = (*m_snake_sample_x_ptr)[i];
-      sample_point_marker.pose.position.y = (*m_snake_sample_y_ptr)[i];
-      sample_point_marker.pose.position.z = (*m_snake_sample_z_ptr)[i];
+      sample_point_marker.pose.position.x = (*m_snake_sample_pos_x_ptr)[i];
+      sample_point_marker.pose.position.y = (*m_snake_sample_pos_y_ptr)[i];
+      sample_point_marker.pose.position.z = (*m_snake_sample_pos_z_ptr)[i];
       sample_point_marker.pose.orientation.x = 0.0;
       sample_point_marker.pose.orientation.y = 0.0;
       sample_point_marker.pose.orientation.z = 0.0;

@@ -21,11 +21,11 @@
 #include <eigen3/Eigen/Geometry>
 #include <eigen3/Eigen/Eigenvalues>
 #include <tf/transform_broadcaster.h>
-/* qp solver */
-#include <qpOASES.hpp>
 
+/* local library */
+#include <leader_follow/SamplingBasedTrajectory.h>
 using namespace Eigen;
-USING_NAMESPACE_QPOASES
+using namespace sampling_based_trajectory;
 
 namespace leader_follower{
   class LeaderFollower
@@ -63,9 +63,12 @@ namespace leader_follower{
     int m_snake_traj_order;
     int m_snake_traj_dev_order;
     int m_n_snake_samples;
-    VectorXd *m_snake_sample_x_ptr;
-    VectorXd *m_snake_sample_y_ptr;
-    VectorXd *m_snake_sample_z_ptr;
+    VectorXd *m_snake_sample_pos_x_ptr;
+    VectorXd *m_snake_sample_pos_y_ptr;
+    VectorXd *m_snake_sample_pos_z_ptr;
+    VectorXd *m_snake_sample_vel_x_ptr;
+    VectorXd *m_snake_sample_vel_y_ptr;
+    VectorXd *m_snake_sample_vel_z_ptr;
     VectorXd *m_snake_sample_time_ptr;
     VectorXd *m_snake_traj_param_x_ptr;
     VectorXd *m_snake_traj_param_y_ptr;
@@ -77,6 +80,9 @@ namespace leader_follower{
     double m_snake_average_vel;
     double *m_snake_joint_states_vel_ptr;
     double *m_snake_joint_states_ang_ptr;
+
+    /* SamplingBasedTrajectory */
+    SamplingBasedTrajectory* m_snake_traj_ptr;
 
     void snakeInitPose();
     void taskStartCallback(std_msgs::Empty msg);

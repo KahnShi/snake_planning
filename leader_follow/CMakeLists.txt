@@ -41,6 +41,7 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${CMAKE_CURRENT_BINARY_DIR}/qpOASES/qpOASES-3.0/include
   ${EIGEN3_INCLUDE_DIRS}
   )
 
@@ -51,10 +52,10 @@ set(LINK_LIBS
 add_library(${PROJECT_NAME}
   src/LeaderFollower.cpp
   )
-target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
+target_link_libraries(${PROJECT_NAME} ${LINK_LIBS} qpOASES)
 
-add_executable(leader_follow_node src/leader_follow_node.cpp)
-target_link_libraries(leader_follow_node ${PROJECT_NAME} ${LINK_LIBS})
+add_executable(leader_follow_node src/leader_follow_node.cpp src/SamplingBasedTrajectory.cpp)
+target_link_libraries(leader_follow_node ${PROJECT_NAME} ${LINK_LIBS} qpOASES)
 
 #############
 ## Install ##

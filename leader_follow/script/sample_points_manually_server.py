@@ -23,10 +23,15 @@ class SamplePointsServer:
     def manuallyPublish(self):
         height = 0.0
         self.sample_points_ = [[0.0, 1.0, 2.0],
+                               [-10000.0, -10000.0, -10000.0],
                                [1.0, 2.0, 2.0],
+                               [-10000.0, -10000.0, -10000.0],
                                [2.0, 2.0, 2.0],
+                               [-10000.0, -10000.0, -10000.0],
                                [5.0, 0.0, 2.0],
-                               [6.0, 0.0, 2.0]
+                               [-10000.0, -10000.0, -10000.0],
+                               [6.0, 0.0, 2.0],
+                               [0.0, 0.0, 0.0]
         ]
         sample_polygon_points = PolygonStamped()
         sample_polygon_points.header.frame_id = "/world"
