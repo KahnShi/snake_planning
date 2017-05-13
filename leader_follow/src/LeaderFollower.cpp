@@ -25,7 +25,7 @@ namespace leader_follower
     m_pub_snake_takeoff_flag = m_nh.advertise<std_msgs::Empty>(m_pub_snake_takeoff_flag_topic_name, 1);
     m_pub_snake_land_flag = m_nh.advertise<std_msgs::Empty>(m_pub_snake_land_flag_topic_name, 1);
     m_pub_snake_joint_states = m_nh.advertise<sensor_msgs::JointState>(m_pub_snake_joint_states_topic_name, 1);
-    m_pub_snake_flight_nav = m_nh.advertise<aerial_robot_base::FlightNav>(m_pub_snake_flight_nav_topic_name, 1);
+    // m_pub_snake_flight_nav = m_nh.advertise<aerial_robot_base::FlightNav>(m_pub_snake_flight_nav_topic_name, 1);
     m_pub_sample_points = m_nh.advertise<visualization_msgs::MarkerArray>("/sample_points_markers", 1);
 
     /* Init value */
@@ -45,7 +45,7 @@ namespace leader_follower
     m_snake_traj_ptr = new SamplingBasedTrajectory(m_nh, m_nhp, 2);
 
     usleep(2000000);
-    ROS_INFO("LeaderFollower initialization finished.");
+    ROS_INFO("[LeaderFollower] Initialization finished.");
   }
 
   void LeaderFollower::snakeInitPose()
@@ -55,14 +55,14 @@ namespace leader_follower
     usleep(300000);
     m_pub_snake_takeoff_flag.publish(msg);
     usleep(5000000);
-    ROS_INFO("Takeoff finished.");
+    ROS_INFO("[LeaderFollower] Snake takeoff finished.");
     sensor_msgs::JointState joints_msg;
     joints_msg.position.push_back(0.0);
     joints_msg.position.push_back(0.0);
     joints_msg.position.push_back(1.57);
     m_pub_snake_joint_states.publish(joints_msg);
     usleep(3000000);
-    ROS_INFO("Get to initial joints state.");
+    ROS_INFO("[LeaderFollower] Snake reach initial joints state.");
   }
 
   void LeaderFollower::taskStartCallback(std_msgs::Empty msg)
@@ -103,7 +103,9 @@ namespace leader_follower
     m_snake_traj_ptr->m_traj_param_y_ptr = m_snake_traj_param_y_ptr;
     m_snake_traj_ptr->m_traj_param_z_ptr = m_snake_traj_param_z_ptr;
 
-    if (m_snake_traj_ptr->generateTrajectory()){
+    bool is_traj_available = m_snake_traj_ptr->generateTrajectory();
+    ROS_INFO("[LeaderFollower] Trajectory generation finished.");
+    if (is_traj_available){
       ROS_INFO("[LeaderFollower] Trajectory generation succeeded.");
       m_snake_traj_ptr->trajectoryVisualization();
     }
@@ -159,15 +161,15 @@ namespace leader_follower
     (*m_snake_sample_vel_x_ptr)[3] = 0.0;
     (*m_snake_sample_vel_y_ptr)[3] = 0.0;
     (*m_snake_sample_vel_z_ptr)[3] = 0.0;
-    (*m_snake_sample_vel_x_ptr)[2] = -10000.0;
-    (*m_snake_sample_vel_y_ptr)[2] = -10000.0;
-    (*m_snake_sample_vel_z_ptr)[2] = -10000.0;
-    (*m_snake_sample_vel_x_ptr)[1] = -10000.0;
-    (*m_snake_sample_vel_y_ptr)[1] = -10000.0;
-    (*m_snake_sample_vel_z_ptr)[1] = -10000.0;
-    (*m_snake_sample_vel_x_ptr)[0] = -10000.0;
-    (*m_snake_sample_vel_y_ptr)[0] = -10000.0;
-    (*m_snake_sample_vel_z_ptr)[0] = -10000.0;
+    (*m_snake_sample_vel_x_ptr)[2] = 0.0;
+    (*m_snake_sample_vel_y_ptr)[2] = 0.0;
+    (*m_snake_sample_vel_z_ptr)[2] = 0.0;
+    (*m_snake_sample_vel_x_ptr)[1] = 0.0;
+    (*m_snake_sample_vel_y_ptr)[1] = 0.0;
+    (*m_snake_sample_vel_z_ptr)[1] = 0.0;
+    (*m_snake_sample_vel_x_ptr)[0] = 0.0;
+    (*m_snake_sample_vel_y_ptr)[0] = 0.0;
+    (*m_snake_sample_vel_z_ptr)[0] = 0.0;
     /* add sampling points from normal planning algorithm */
     for (int i = 0; i < n_samples; ++i){
       (*m_snake_sample_pos_x_ptr)[i+m_n_snake_links] = points(2*i, 0);

@@ -15,7 +15,7 @@ set(PACKAGE_DEPENDENCIES
   std_msgs
   visualization_msgs
   tf
-  aerial_robot_base
+  #aerial_robot_base
 )
 
 
