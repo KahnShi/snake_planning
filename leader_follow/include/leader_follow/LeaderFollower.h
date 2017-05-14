@@ -58,11 +58,14 @@ namespace leader_follower{
     std::string m_pub_snake_land_flag_topic_name;
     std::string m_pub_snake_joint_states_topic_name;
     std::string m_pub_snake_flight_nav_topic_name;
+    std::string m_pub_snake_traj_path_topic_name;
 
     /* Trajectory */
     int m_snake_traj_order;
     int m_snake_traj_dev_order;
     int m_n_snake_samples;
+    double m_snake_traj_acc_lambda;
+    int m_snake_traj_qp_n_wsr; // work set recalculations
     VectorXd *m_snake_sample_pos_x_ptr;
     VectorXd *m_snake_sample_pos_y_ptr;
     VectorXd *m_snake_sample_pos_z_ptr;
@@ -89,6 +92,7 @@ namespace leader_follower{
     void snakeOdomCallback(const nav_msgs::OdometryConstPtr& msg);
     void samplingPointsCallback(const geometry_msgs::PolygonStampedConstPtr& msg);
     void getSamplePoints(MatrixXd& points);
+    inline double getPointsDistanceL2(int id_1, int id_2);
     inline double getPointsDistance(int id_1, int id_2);
     void visualizeSamplePoints();
     bool generateTrajectory();

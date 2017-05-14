@@ -1,0 +1,8 @@
+<launch>
+  <node pkg="leader_follow" type="leader_follow_node" name="leader_follow_node" output="screen">
+    <param name="snake_traj_order" value="10" />
+    <param name="snake_traj_dev_order" value="5" />
+    <param name="snake_traj_acc_lambda" value="0.0" />
+    <param name="snake_traj_qp_n_wsr" value="300" />
+  </node>
+</launch>

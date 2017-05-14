@@ -3,13 +3,15 @@ USING_NAMESPACE_QPOASES
 
 namespace sampling_based_trajectory
 {
-  SamplingBasedTrajectory::SamplingBasedTrajectory(ros::NodeHandle nh, ros::NodeHandle nhp, int dimensions, std::string traj_path_pub_topic_name, double debug, double visualize_unit_time):
+  SamplingBasedTrajectory::SamplingBasedTrajectory(ros::NodeHandle nh, ros::NodeHandle nhp, int dimensions, std::string traj_path_pub_topic_name, double lambda_H, int n_wsr, double debug, double visualize_unit_time):
     m_nh(nh),
     m_nhp(nhp),
+    m_lambda_H(lambda_H),
     m_dim(dimensions),
     m_debug(debug),
     m_visualize_unit_time(visualize_unit_time),
-    m_traj_path_pub_topic_name(traj_path_pub_topic_name)
+    m_traj_path_pub_topic_name(traj_path_pub_topic_name),
+    m_n_wsr(n_wsr)
   {
     m_pub_traj_path = m_nh.advertise<nav_msgs::Path>(m_traj_path_pub_topic_name, 1);
   }
@@ -66,6 +68,8 @@ namespace sampling_based_trajectory
     n_constraints = n_constraints_vel +
       (n_samples - 2) + n_samples
       + (n_samples - 2) * (m_traj_dev_order - 1);
+    MatrixXd H_snap = MatrixXd::Zero(m_traj_order * n_polynomial, m_traj_order * n_polynomial);
+    MatrixXd H_acc = MatrixXd::Zero(m_traj_order * n_polynomial, m_traj_order * n_polynomial);
     MatrixXd H = MatrixXd::Zero(m_traj_order * n_polynomial, m_traj_order * n_polynomial);
     MatrixXd A = MatrixXd::Zero(n_constraints, m_traj_order * n_polynomial);
     VectorXd lb_A = VectorXd::Zero(n_constraints);
@@ -142,13 +146,27 @@ namespace sampling_based_trajectory
       int id = i * m_traj_order;
       for (int j = m_traj_dev_order; j < m_traj_order; ++j){
         for (int k = m_traj_dev_order; k < m_traj_order; ++k){
-          H(id+j, id+k) = pow((*sample_time_ptr)[i+1] - (*sample_time_ptr)[i],
+          H_snap(id+j, id+k) = pow((*sample_time_ptr)[i+1] - (*sample_time_ptr)[i],
                               j+k-2*m_traj_dev_order+1)
             / (j+k-2*m_traj_dev_order+1) * permutation(j, m_traj_dev_order)
             * permutation(k, m_traj_dev_order);
         }
       }
     }
+
+    for (int i = 0; i < n_polynomial; ++i){
+      int id = i * m_traj_order;
+      for (int j = 2; j < m_traj_order; ++j){
+        for (int k = 2; k < m_traj_order; ++k){
+          H_acc(id+j, id+k) = pow((*sample_time_ptr)[i+1] - (*sample_time_ptr)[i],
+                              j+k-2*2+1)
+            / (j+k-2*2+1) * permutation(j, 2)
+            * permutation(k, 2);
+        }
+      }
+    }
+
+    H = H_snap - m_lambda_H * H_acc;
 
     if (m_debug){
       std::cout << "Constrints num: " << n_constraints << "\n";
@@ -219,7 +237,7 @@ namespace sampling_based_trajectory
     QProblem exampleQ(m_traj_order * n_polynomial, n_constraints);
 
     Options options;
-    //options.enableFlippingBounds = BT_FALSE;
+    // options.enableFlippingBounds = BT_FALSE;
     // options.initialStatusBounds = ST_INACTIVE;
     // options.numRefinementSteps = 1;
     // options.enableCholeskyRefactorisation = 1;
@@ -231,8 +249,7 @@ namespace sampling_based_trajectory
     real_t *G_r = new real_t[m_traj_order * n_polynomial];
     for (int i = 0; i < m_traj_order * n_polynomial; ++i)
       G_r[i] = 0.0;
-    int_t nWSR = 300;
-    exampleQ.init(H_r, G_r, A_r, NULL, NULL, lb_A_r, ub_A_r, nWSR, 0);
+    exampleQ.init(H_r, G_r, A_r, NULL, NULL, lb_A_r, ub_A_r, m_n_wsr, 0);
     real_t param_r[m_traj_order * n_polynomial];
     exampleQ.getPrimalSolution(param_r);
 
@@ -245,6 +262,16 @@ namespace sampling_based_trajectory
         std::cout << "\n";
       std::cout << param_r[i] << ", ";
     }
+
+    VectorXd param = VectorXd::Zero(m_traj_order * n_polynomial);
+    for (int i = 0; i <m_traj_order * n_polynomial; ++i)
+      param[i] = param_r[i];
+    VectorXd Ax = VectorXd::Zero(n_constraints);
+    Ax = A * param;
+    std::cout << "\n Compare with bound: \n";
+    for ( int i = 0; i < n_constraints; ++i)
+      std::cout << Ax[i] - lb_A[i] << ", ";
+    std::cout << "\n\n";
     // todo: judge whether qp is solved
     return true;
   }
@@ -294,6 +321,9 @@ namespace sampling_based_trajectory
     nav_msgs::Path traj_path;
     traj_path.header.frame_id = std::string("world");
     traj_path.header.stamp = ros::Time::now();
+    int seq = 0;
+    traj_path.header.seq = seq;
+    ++seq;
     int n_visualize_pts = int(((*m_sample_time_ptr)[m_n_samples-1] - (*m_sample_time_ptr)[0])
                               / m_visualize_unit_time);
     for (int i = 0; i <= n_visualize_pts; ++i){
@@ -302,6 +332,8 @@ namespace sampling_based_trajectory
         t = (*m_sample_time_ptr)[m_n_samples-1];
       geometry_msgs::PoseStamped cur_pose;
       cur_pose.header = traj_path.header;
+      cur_pose.header.seq = seq;
+      ++seq;
       Vector3d cur_vec = getnOrderPointFromTrajectory(0, t);
       cur_pose.pose.position.x = cur_vec[0];
       cur_pose.pose.position.y = cur_vec[1];
