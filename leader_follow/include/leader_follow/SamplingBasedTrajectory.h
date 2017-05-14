@@ -24,7 +24,7 @@ namespace sampling_based_trajectory
   class SamplingBasedTrajectory
   {
   public:
-    SamplingBasedTrajectory(ros::NodeHandle nh, ros::NodeHandle nhp, int dimensions, std::string traj_path_pub_topic_name=std::string("/traj_path"), double debug = true, double visualize_unit_time=0.1);
+    SamplingBasedTrajectory(ros::NodeHandle nh, ros::NodeHandle nhp, int dimensions, std::string traj_path_pub_topic_name=std::string("/traj_path"), double debug = true, double visualize_unit_time=0.05);
     ~SamplingBasedTrajectory(){}
 
     ros::NodeHandle m_nh, m_nhp;

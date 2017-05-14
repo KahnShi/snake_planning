@@ -158,15 +158,16 @@ namespace leader_follower
     (*m_snake_sample_pos_y_ptr)[0] = -0.44;
     (*m_snake_sample_pos_z_ptr)[0] = 2.0;
 
-    (*m_snake_sample_vel_x_ptr)[3] = 0.0;
-    (*m_snake_sample_vel_y_ptr)[3] = 0.0;
-    (*m_snake_sample_vel_z_ptr)[3] = 0.0;
-    (*m_snake_sample_vel_x_ptr)[2] = 0.0;
-    (*m_snake_sample_vel_y_ptr)[2] = 0.0;
-    (*m_snake_sample_vel_z_ptr)[2] = 0.0;
-    (*m_snake_sample_vel_x_ptr)[1] = 0.0;
-    (*m_snake_sample_vel_y_ptr)[1] = 0.0;
-    (*m_snake_sample_vel_z_ptr)[1] = 0.0;
+    // todo: set joiints initial velocity
+    (*m_snake_sample_vel_x_ptr)[3] = -10000.0;
+    (*m_snake_sample_vel_y_ptr)[3] = -10000.0;
+    (*m_snake_sample_vel_z_ptr)[3] = -10000.0;
+    (*m_snake_sample_vel_x_ptr)[2] = -10000.0;
+    (*m_snake_sample_vel_y_ptr)[2] = -10000.0;
+    (*m_snake_sample_vel_z_ptr)[2] = -10000.0;
+    (*m_snake_sample_vel_x_ptr)[1] = -10000.0;
+    (*m_snake_sample_vel_y_ptr)[1] = -10000.0;
+    (*m_snake_sample_vel_z_ptr)[1] = -10000.0;
     (*m_snake_sample_vel_x_ptr)[0] = 0.0;
     (*m_snake_sample_vel_y_ptr)[0] = 0.0;
     (*m_snake_sample_vel_z_ptr)[0] = 0.0;

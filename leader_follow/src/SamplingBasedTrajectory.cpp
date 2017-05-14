@@ -63,7 +63,9 @@ namespace sampling_based_trajectory
        2. start and end points' position constrints
        3. middle points have equal constraints in position, velocity, ...., (m_traj_dev_order-1) order
     */
-    n_constraints = n_constraints_vel + (n_samples - 2) * m_traj_dev_order + 2;
+    n_constraints = n_constraints_vel +
+      (n_samples - 2) + n_samples
+      + (n_samples - 2) * (m_traj_dev_order - 1);
     MatrixXd H = MatrixXd::Zero(m_traj_order * n_polynomial, m_traj_order * n_polynomial);
     MatrixXd A = MatrixXd::Zero(n_constraints, m_traj_order * n_polynomial);
     VectorXd lb_A = VectorXd::Zero(n_constraints);
@@ -85,9 +87,8 @@ namespace sampling_based_trajectory
       if ((*sample_vel_ptr)[i] > -100.0 + 1.0){
         int col_id = i * m_traj_order;
         if (i == n_samples - 1){
-          col_id -= m_traj_order;
           for (int j = 1; j < m_traj_order; ++j)
-            A(row_id, col_id+j) = T(n_samples - 1, j - 1) * permutation(j, 1);
+            A(row_id, col_id-m_traj_order+j) = T(n_samples - 1, j - 1) * permutation(j, 1);
         }
         else{
           A(row_id, col_id+1) = 1.0;
@@ -103,9 +104,8 @@ namespace sampling_based_trajectory
       /* Position constriants */
       if (i == n_samples - 1){
         /* Check the end point of polynomial */
-        col_id -= m_traj_order;
         for (int j = 0; j < m_traj_order; ++j)
-          A(row_id, col_id+j) = T(n_samples - 1, j);
+          A(row_id, col_id-m_traj_order+j) = T(n_samples - 1, j);
       }
       else{
         A(row_id, col_id) = 1.0;
@@ -114,10 +114,19 @@ namespace sampling_based_trajectory
       ub_A(row_id) = (*sample_pos_ptr)[i];
       row_id += 1;
 
-      /* Equal constraints in velocity, ..., (m_traj_dev_order-1) order */
+      /* Position constrints (end point equal to sample point) [merged below] */
+      // if (i >= 1 && i <= n_samples - 2){
+      //   for (int j = 0; j < m_traj_order; ++j)
+      //     A(row_id, col_id-m_traj_order +j) = T(i, j);
+      //   lb_A(row_id) = (*sample_pos_ptr)[i];
+      //   ub_A(row_id) = (*sample_pos_ptr)[i];
+      //   row_id += 1;
+      // }
+
+      /* Equal constraints in position, velocity (1 order), ..., (m_traj_dev_order-1) order */
       if (i >= 1 && i <= n_samples - 2){
-        for (int order = 1; order < m_traj_dev_order; ++order){
-          A(row_id, col_id+order) = permutation(order, order);
+        for (int order = 0; order < m_traj_dev_order; ++order){
+          A(row_id, col_id+order) = double(permutation(order, order));
           for (int j = order; j < m_traj_order; ++j){
             A(row_id, col_id-m_traj_order+j) = -T(i, j-order) * permutation(j, order);
           }
@@ -139,6 +148,11 @@ namespace sampling_based_trajectory
             * permutation(k, m_traj_dev_order);
         }
       }
+    }
+
+    if (m_debug){
+      std::cout << "Constrints num: " << n_constraints << "\n";
+      std::cout << "Constrints vector size: " << row_id << "\n";
     }
 
     /* Setting up QProblemB object. */
@@ -210,12 +224,14 @@ namespace sampling_based_trajectory
     // options.numRefinementSteps = 1;
     // options.enableCholeskyRefactorisation = 1;
     // options.enableEqualities = BT_TRUE;
+    // options.enableFarBounds = BT_TRUE;
+    // options.enableFlippingBounds = BT_TRUE;
     options.printLevel = PL_LOW;
     exampleQ.setOptions( options );
     real_t *G_r = new real_t[m_traj_order * n_polynomial];
     for (int i = 0; i < m_traj_order * n_polynomial; ++i)
       G_r[i] = 0.0;
-    int_t nWSR = 300000;
+    int_t nWSR = 300;
     exampleQ.init(H_r, G_r, A_r, NULL, NULL, lb_A_r, ub_A_r, nWSR, 0);
     real_t param_r[m_traj_order * n_polynomial];
     exampleQ.getPrimalSolution(param_r);
@@ -281,7 +297,7 @@ namespace sampling_based_trajectory
     int n_visualize_pts = int(((*m_sample_time_ptr)[m_n_samples-1] - (*m_sample_time_ptr)[0])
                               / m_visualize_unit_time);
     for (int i = 0; i <= n_visualize_pts; ++i){
-      double t = (*m_sample_time_ptr)[0] + i * m_visualize_unit_time;
+      double t = (*m_sample_time_ptr)[0] + double(i) * m_visualize_unit_time;
       if (i == n_visualize_pts)
         t = (*m_sample_time_ptr)[m_n_samples-1];
       geometry_msgs::PoseStamped cur_pose;
