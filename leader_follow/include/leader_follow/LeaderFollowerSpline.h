@@ -1,5 +1,5 @@
-#ifndef LEADER_FOLLOWER_H_
-#define LEADER_FOLLOWER_H_
+#ifndef LEADER_FOLLOWER_SPLINE_H_
+#define LEADER_FOLLOWER_SPLINE_H_
 
 #include <ros/ros.h>
 #include <std_msgs/Empty.h>
@@ -23,16 +23,16 @@
 #include <tf/transform_broadcaster.h>
 
 /* local library */
-#include <leader_follow/SamplingBasedTrajectory.h>
-using namespace Eigen;
-using namespace sampling_based_trajectory;
+#include <bspline_ros/bsplineGenerate.h>
 
-namespace leader_follower{
-  class LeaderFollower
+using namespace Eigen;
+
+namespace leader_follower_spline{
+  class LeaderFollowerSpline
   {
   public:
-    LeaderFollower(ros::NodeHandle nh, ros::NodeHandle nhp);
-    ~LeaderFollower(){}
+    LeaderFollowerSpline(ros::NodeHandle nh, ros::NodeHandle nhp);
+    ~LeaderFollowerSpline(){}
 
   private:
     nav_msgs::Odometry m_snake_odom;
@@ -41,7 +41,7 @@ namespace leader_follower{
     ros::NodeHandle m_nh, m_nhp;
     ros::Subscriber m_sub_snake_task_start_flag;
     ros::Subscriber m_sub_snake_odom;
-    ros::Subscriber m_sub_sampling_points;
+    ros::Subscriber m_sub_control_points;
 
     /* Publisher */
     ros::Publisher m_pub_snake_start_flag;
@@ -49,7 +49,7 @@ namespace leader_follower{
     ros::Publisher m_pub_snake_land_flag;
     ros::Publisher m_pub_snake_joint_states;
     ros::Publisher m_pub_snake_flight_nav;
-    ros::Publisher m_pub_sample_points_markers;
+    ros::Publisher m_pub_control_points_markers;
 
     /* Topic name */
     std::string m_sub_snake_odom_topic_name;
@@ -60,42 +60,27 @@ namespace leader_follower{
     std::string m_pub_snake_flight_nav_topic_name;
     std::string m_pub_snake_traj_path_topic_name;
 
-    /* Trajectory */
-    int m_snake_traj_order;
-    int m_snake_traj_dev_order;
-    int m_n_snake_samples;
-    double m_snake_traj_acc_lambda;
-    int m_snake_traj_qp_n_wsr; // work set recalculations
-    VectorXd *m_snake_sample_pos_x_ptr;
-    VectorXd *m_snake_sample_pos_y_ptr;
-    VectorXd *m_snake_sample_pos_z_ptr;
-    VectorXd *m_snake_sample_vel_x_ptr;
-    VectorXd *m_snake_sample_vel_y_ptr;
-    VectorXd *m_snake_sample_vel_z_ptr;
-    VectorXd *m_snake_sample_time_ptr;
-    VectorXd *m_snake_traj_param_x_ptr;
-    VectorXd *m_snake_traj_param_y_ptr;
-    VectorXd *m_snake_traj_param_z_ptr;
-
     /* Snake states */
+    int m_snake_traj_order;
     int m_n_snake_links;
     double m_snake_link_length;
     double m_snake_average_vel;
     double *m_snake_joint_states_vel_ptr;
     double *m_snake_joint_states_ang_ptr;
 
-    /* SamplingBasedTrajectory */
-    SamplingBasedTrajectory* m_snake_traj_ptr;
+    /* bspline generator */
+    bool m_snake_traj_bspline_mode;
+    bsplineGenerate m_bspline_generator;
+    double m_spline_segment_time;
+    std::vector<geometry_msgs::Point32> m_control_point_vec;
 
     void snakeInitPose();
     void taskStartCallback(std_msgs::Empty msg);
     void snakeOdomCallback(const nav_msgs::OdometryConstPtr& msg);
-    void samplingPointsCallback(const geometry_msgs::PolygonStampedConstPtr& msg);
-    void getSamplePoints(MatrixXd& points);
-    inline double getPointsDistanceL2(int id_1, int id_2);
-    inline double getPointsDistance(int id_1, int id_2);
-    void visualizeSamplePoints();
+    void controlPointsCallback(const geometry_msgs::PolygonStampedConstPtr& msg);
     bool generateTrajectory();
+    void splineInputParam();
+    void visualizeControlPoints();
   };
 }
 #endif

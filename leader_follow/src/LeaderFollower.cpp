@@ -29,7 +29,7 @@ namespace leader_follower
     m_pub_snake_land_flag = m_nh.advertise<std_msgs::Empty>(m_pub_snake_land_flag_topic_name, 1);
     m_pub_snake_joint_states = m_nh.advertise<sensor_msgs::JointState>(m_pub_snake_joint_states_topic_name, 1);
     // m_pub_snake_flight_nav = m_nh.advertise<aerial_robot_base::FlightNav>(m_pub_snake_flight_nav_topic_name, 1);
-    m_pub_sample_points = m_nh.advertise<visualization_msgs::MarkerArray>("/sample_points_markers", 1);
+    m_pub_sample_points_markers = m_nh.advertise<visualization_msgs::MarkerArray>("/sample_points_markers", 1);
 
     /* Init value */
     m_task_start_flag = false;
@@ -245,6 +245,6 @@ namespace leader_follower
       }
       sample_point_markers.markers.push_back(sample_point_marker);
     }
-    m_pub_sample_points.publish(sample_point_markers);
+    m_pub_sample_points_markers.publish(sample_point_markers);
   }
 }

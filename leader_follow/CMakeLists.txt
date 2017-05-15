@@ -16,6 +16,7 @@ set(PACKAGE_DEPENDENCIES
   visualization_msgs
   tf
   #aerial_robot_base
+  bspline_ros
 )
 
 
@@ -51,10 +52,15 @@ set(LINK_LIBS
 
 add_library(${PROJECT_NAME}
   src/LeaderFollower.cpp
+  src/LeaderFollowerSpline.cpp
+  src/SamplingBasedTrajectory.cpp
   )
 target_link_libraries(${PROJECT_NAME} ${LINK_LIBS} qpOASES)
 
-add_executable(leader_follow_node src/leader_follow_node.cpp src/SamplingBasedTrajectory.cpp)
+add_executable(leader_follow_spline_node src/leader_follow_spline_node.cpp)
+target_link_libraries(leader_follow_spline_node ${PROJECT_NAME} ${LINK_LIBS})
+
+add_executable(leader_follow_node src/leader_follow_node.cpp)
 target_link_libraries(leader_follow_node ${PROJECT_NAME} ${LINK_LIBS} qpOASES)
 
 #############
