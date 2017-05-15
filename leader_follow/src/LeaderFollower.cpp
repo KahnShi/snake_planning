@@ -92,8 +92,6 @@ namespace leader_follower
     visualizeSamplePoints();
 
     /* Generate trajectory */
-    delete m_snake_traj_ptr;
-    m_snake_traj_ptr = new SamplingBasedTrajectory(m_nh, m_nhp, 2, m_pub_snake_traj_path_topic_name, m_snake_traj_acc_lambda, m_snake_traj_qp_n_wsr);
     m_snake_traj_ptr->m_traj_order = m_snake_traj_order;
     m_snake_traj_ptr->m_traj_dev_order = m_snake_traj_dev_order;
     m_snake_traj_ptr->m_n_samples = m_n_snake_samples;
