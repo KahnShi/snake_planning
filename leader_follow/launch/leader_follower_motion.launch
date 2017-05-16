@@ -12,6 +12,7 @@
       <param name="snake_traj_dev_order" value="4" />
       <param name="snake_traj_acc_lambda" value="0.0" />
       <param name="snake_traj_qp_n_wsr" value="3000" />
+      <param name="snake_links_number" value="4" />
     </node>
   </group>
 </launch>

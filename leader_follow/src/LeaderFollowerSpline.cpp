@@ -33,6 +33,7 @@ namespace leader_follower_spline
     m_task_start_flag = false;
     m_snake_joint_states_vel_ptr = new double[m_n_snake_links + 1];
     m_snake_joint_states_ang_ptr = new double[m_n_snake_links + 1];
+    m_snake_command_ptr = new SnakeCommand(m_nh, m_nhp);
 
     /* bspline */
     m_bspline_generator.onInit(m_snake_traj_order, true, m_pub_snake_traj_path_topic_name);
@@ -55,6 +56,7 @@ namespace leader_follower_spline
     joints_msg.position.push_back(0.0);
     m_pub_snake_joint_states.publish(joints_msg);
     usleep(5000000);
+    /* Fly to initial position */
     aerial_robot_base::FlightNav nav_msg;
     nav_msg.header.frame_id = std::string("/world");
     nav_msg.header.stamp = ros::Time::now();
@@ -64,6 +66,7 @@ namespace leader_follower_spline
     nav_msg.target_pos_y = 0.0;
     m_pub_snake_flight_nav.publish(nav_msg);
     usleep(5000000);
+    /* Change yaw angle to initial value */
     aerial_robot_base::FlightNav nav_yaw_msg;
     nav_yaw_msg.header.frame_id = std::string("/world");
     nav_yaw_msg.header.stamp = ros::Time::now();
@@ -71,6 +74,9 @@ namespace leader_follower_spline
     nav_yaw_msg.psi_nav_mode = nav_msg.POS_MODE;
     nav_yaw_msg.target_psi = 0.0;
     m_pub_snake_flight_nav.publish(nav_yaw_msg);
+    usleep(5000000);
+    /* Adjust to initial position again*/
+    m_pub_snake_flight_nav.publish(nav_msg);
     usleep(2000000);
     ROS_INFO("[LeaderFollowerSpline] Snake reach initial joints state.");
   }

@@ -23,9 +23,10 @@
 
 /* local library */
 #include <aerial_robot_base/FlightNav.h>
-#include <bspline_ros/bsplineGenerate.h>
+#include <leader_follow/SnakeCommand.h>
 
 using namespace Eigen;
+using namespace snake_command;
 
 namespace leader_follower_spline{
   class LeaderFollowerSpline
@@ -67,6 +68,7 @@ namespace leader_follower_spline{
     double m_snake_average_vel;
     double *m_snake_joint_states_vel_ptr;
     double *m_snake_joint_states_ang_ptr;
+    SnakeCommand *m_snake_command_ptr;
 
     /* bspline generator */
     bool m_snake_traj_bspline_mode;
