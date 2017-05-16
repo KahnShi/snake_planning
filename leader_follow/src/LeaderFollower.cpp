@@ -61,7 +61,7 @@ namespace leader_follower
     ROS_INFO("[LeaderFollower] Snake takeoff finished.");
     sensor_msgs::JointState joints_msg;
     joints_msg.position.push_back(0.0);
-    joints_msg.position.push_back(0.0);
+    joints_msg.position.push_back(1.57);
     joints_msg.position.push_back(1.57);
     m_pub_snake_joint_states.publish(joints_msg);
     usleep(3000000);

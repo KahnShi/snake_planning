@@ -29,24 +29,24 @@ class ControlPointsServer:
         return pt
 
     def manuallyPublish(self):
-        height = 0.0
-        self.control_points_ = [[-0.88, -0.88, height], 
-                                [-0.88, -0.44, height], 
-                                [-0.88, 0.0, height], 
-                                [-0.88, 0.0, height], 
-                                [-0.44, 0.0, height],
-                                [0.0, 0.0, height], 
-                                [0.0, 0.0, height], 
-                                [0.3, 0.3, height],
-                                [0.7, 0.4, height],
-                                [1.0, 0.0, height],
-                                [1.5, 0.0, height],
-                                [1.5, 0.0, height],
-                                [1.5, -0.44, height],
-                                [1.5, -0.44, height],
-                                [1.94, -0.44, height],
-                                [2.38, -0.44, height],
-                                [2.82, -0.44, height]
+        height = 2.0
+        self.control_points_ = [[0.44, 0.88, height], 
+                                [0.44, 0.44, height], 
+                                [0.44, 0.0, height], 
+                                [0.44, 0.0, height], 
+                                [0.0, 0.0, height],
+                                [-0.44, 0.0, height], 
+                                [-0.44, 0.0, height], 
+                                [-0.74, -0.3, height],
+                                [-1.14, -0.4, height],
+                                [-1.44, 0.0, height],
+                                [-1.94, 0.0, height],
+                                [-1.94, 0.0, height],
+                                [-1.94, 0.44, height],
+                                [-1.94, 0.44, height],
+                                [-2.38, 0.44, height],
+                                [-2.82, 0.44, height],
+                                [-3.26, 0.44, height]
         ]
         control_polygon_points = PolygonStamped()
         for i in range(0, len(self.control_points_)):

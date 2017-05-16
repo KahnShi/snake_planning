@@ -26,7 +26,7 @@ namespace leader_follower_spline
     m_pub_snake_takeoff_flag = m_nh.advertise<std_msgs::Empty>(m_pub_snake_takeoff_flag_topic_name, 1);
     m_pub_snake_land_flag = m_nh.advertise<std_msgs::Empty>(m_pub_snake_land_flag_topic_name, 1);
     m_pub_snake_joint_states = m_nh.advertise<sensor_msgs::JointState>(m_pub_snake_joint_states_topic_name, 1);
-    // m_pub_snake_flight_nav = m_nh.advertise<aerial_robot_base::FlightNav>(m_pub_snake_flight_nav_topic_name, 1);
+    m_pub_snake_flight_nav = m_nh.advertise<aerial_robot_base::FlightNav>(m_pub_snake_flight_nav_topic_name, 1);
     m_pub_control_points_markers = m_nh.advertise<visualization_msgs::MarkerArray>("/control_points_markers", 1);
 
     /* Init value */
@@ -51,10 +51,27 @@ namespace leader_follower_spline
     ROS_INFO("[LeaderFollowerSpline] Snake takeoff finished.");
     sensor_msgs::JointState joints_msg;
     joints_msg.position.push_back(0.0);
-    joints_msg.position.push_back(0.0);
     joints_msg.position.push_back(1.57);
+    joints_msg.position.push_back(0.0);
     m_pub_snake_joint_states.publish(joints_msg);
-    usleep(3000000);
+    usleep(5000000);
+    aerial_robot_base::FlightNav nav_msg;
+    nav_msg.header.frame_id = std::string("/world");
+    nav_msg.header.stamp = ros::Time::now();
+    nav_msg.header.seq = 1;
+    nav_msg.pos_xy_nav_mode = nav_msg.POS_MODE;
+    nav_msg.target_pos_x = 0.0;
+    nav_msg.target_pos_y = 0.0;
+    m_pub_snake_flight_nav.publish(nav_msg);
+    usleep(5000000);
+    aerial_robot_base::FlightNav nav_yaw_msg;
+    nav_yaw_msg.header.frame_id = std::string("/world");
+    nav_yaw_msg.header.stamp = ros::Time::now();
+    nav_yaw_msg.header.seq = 2;
+    nav_yaw_msg.psi_nav_mode = nav_msg.POS_MODE;
+    nav_yaw_msg.target_psi = 0.0;
+    m_pub_snake_flight_nav.publish(nav_yaw_msg);
+    usleep(2000000);
     ROS_INFO("[LeaderFollowerSpline] Snake reach initial joints state.");
   }
 

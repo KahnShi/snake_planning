@@ -8,7 +8,6 @@
 #include <geometry_msgs/Point32.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PolygonStamped.h>
-//#include <aerial_robot_base/FlightNav.h>
 #include <tf/transform_broadcaster.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
@@ -23,6 +22,7 @@
 #include <tf/transform_broadcaster.h>
 
 /* local library */
+#include <aerial_robot_base/FlightNav.h>
 #include <bspline_ros/bsplineGenerate.h>
 
 using namespace Eigen;
