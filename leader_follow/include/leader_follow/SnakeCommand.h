@@ -61,6 +61,13 @@ namespace snake_command{
 
     tf::TransformListener m_tf_listener;
 
+    /* spline */
+    bsplineGenerate *m_bspline_traj_ptr;
+    double m_traj_start_time;
+    double m_traj_current_time;
+    double m_traj_bias_start_time;
+    double m_spline_segment_time;
+
     /* Publisher */
     ros::Publisher m_pub_flight_nav;
     ros::Publisher m_pub_joints_ctrl;
@@ -75,6 +82,9 @@ namespace snake_command{
     void jointStatesCallback(const sensor_msgs::JointStateConstPtr& joints_msg);
     void baseLinkOdomCallback(const nav_msgs::OdometryConstPtr& odom_msg);
     void controlCallback(const ros::TimerEvent& e);
+    void directTrackGlobalTrajectory();
+    inline tf::Vector3 vectorToVector3(std::vector<double> vec);
+    
   };
 }
 
