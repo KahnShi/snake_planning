@@ -235,8 +235,8 @@ namespace snake_command{
     tf::Vector3 des_world_vel = vectorToVector3(m_bspline_traj_ptr->evaluateDerive(current_traj_time));
     tf::Vector3 des_world_pos = vectorToVector3(m_bspline_traj_ptr->evaluate(current_traj_time));
     tf::Vector3 real_world_pos;
-    // link1
-    real_world_pos = m_links_pos_ptr[0];
+    // link2
+    real_world_pos = m_links_pos_ptr[1];
     std::cout << "des world: " << current_traj_time << ": " << des_world_pos.x() << ", " << des_world_pos.y() << ", vel: "
               << des_world_vel.x() << ", " << des_world_vel.y() << "\n" ;
     std::cout << "real world: " << real_world_pos.x() << ", " << real_world_pos.y() << "\n\n";

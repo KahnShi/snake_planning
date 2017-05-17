@@ -62,8 +62,8 @@ namespace leader_follower_spline
     usleep(5000000);
     sensor_msgs::JointState joints_msg;
     joints_msg.position.push_back(1.57);
-    joints_msg.position.push_back(0.0);
-    joints_msg.position.push_back(0.0);
+    joints_msg.position.push_back(1.57);
+    joints_msg.position.push_back(1.57);
     m_pub_snake_joint_states.publish(joints_msg);
     usleep(5000000);
     // rotate to inital angle after transform
@@ -161,10 +161,10 @@ namespace leader_follower_spline
     }
 
     // add cylinder representing trees
-    // tree: -1.0, 0.  -2.3, 0.2  - 2.5, -0.82
+    // tree: -1.0, 0.3.  - 2.5, -0.82
     cylinder_marker.id = control_point_marker.id + 1;
     cylinder_marker.pose.position.x = -1.0;
-    cylinder_marker.pose.position.y = 0.0;
+    cylinder_marker.pose.position.y = 0.45;
     cylinder_marker.pose.position.z = 0.0;
     cylinder_marker.pose.orientation.x = 0.0;
     cylinder_marker.pose.orientation.y = 0.0;
@@ -177,11 +177,6 @@ namespace leader_follower_spline
     cylinder_marker.color.r = 162.0f / 255.0f;
     cylinder_marker.color.g = 154.0f / 255.0f;
     cylinder_marker.color.b = 103.0f / 255.0f;
-    control_point_markers.markers.push_back(cylinder_marker);
-
-    cylinder_marker.id += 1;
-    cylinder_marker.pose.position.x = -2.3;
-    cylinder_marker.pose.position.y = 0.2;
     control_point_markers.markers.push_back(cylinder_marker);
 
     cylinder_marker.id += 1;
