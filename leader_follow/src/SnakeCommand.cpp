@@ -52,6 +52,32 @@ namespace snake_command{
     // std::cout << "v_l2: " << v_l2.x() << ", " << v_l2.y() << ", " << v_l2.z() << "\n";
   }
 
+  void SnakeCommand::getNextLink(tf::Vector3 &next_link, tf::Vector3 cur_link, double &joint_ang, double start_time)
+  {
+    getNextLinkFromSpline(next_link, cur_link, m_link_length, start_time);
+    joint_ang = atan2(next_link.y() - cur_link.y(), next_link.x() - cur_link.x());
+  }
+
+  void SnakeCommand::getNextLinkFromSpline(tf::Vector3 &next_link, tf::Vector3 cur_link, double link_length, double start_time)
+  {
+    double time_gap = 0.05;
+    while (1){
+      start_time -= time_gap;
+      if (start_time < m_bspline_traj_ptr->m_t0){
+        start_time = m_bspline_traj_ptr->m_t0;
+        break;
+      }
+      tf::Vector3 point = vectorToVector3(m_bspline_traj_ptr->evaluate(start_time));
+      double dist = cur_link.distance(point);
+      if (link_length - dist > 0)
+        continue;
+      else
+        break;
+
+    }
+    next_link = vectorToVector3(m_bspline_traj_ptr->evaluate(start_time));
+  }
+
   void SnakeCommand::getPreviousLink(tf::Vector3 &prev_link, tf::Vector3 cur_link, double &joint_ang, double start_time)
   {
     getPreviousLinkFromSpline(prev_link, cur_link, m_link_length, start_time);
@@ -88,6 +114,7 @@ namespace snake_command{
     // todo: mannually set
     m_traj_bias_start_time = m_spline_segment_time * (m_n_links + 1 - link_id);
     bool yaw_mode = false;
+    bool next_link_mode = true;
     // link2
     m_traj_bias_start_time = m_spline_segment_time * (m_n_links - link_id);
     double time_factor = 1.0;
@@ -124,8 +151,16 @@ namespace snake_command{
                 << ". cur_link: " << real_world_pos[i+1].x() << ", " << real_world_pos[i+1].y() << "\n";
     }
     std::cout << "\n";
-    for (int i = link_id; i <= 2; ++i)
-      des_joint_ang[i+1] = m_joints_ang_ptr[i+1];
+    // get one next link from "base link"
+    if (next_link_mode){
+      getNextLink(des_world_pos[link_id+2], real_world_pos[link_id+1], des_joint_ang[link_id+1], current_traj_time);
+      for (int i = link_id + 1; i <= 2; ++i)
+        des_joint_ang[i+1] = m_joints_ang_ptr[i+1];
+    }
+    else{
+      for (int i = link_id; i <= 2; ++i)
+        des_joint_ang[i+1] = m_joints_ang_ptr[i+1];
+    }
     sensor_msgs::JointState joints_msg;
     joints_msg.position.push_back(des_joint_ang[1]);
     joints_msg.position.push_back(des_joint_ang[2]);

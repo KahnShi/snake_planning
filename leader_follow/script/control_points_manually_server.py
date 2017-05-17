@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import time
 import sys
 import rospy
@@ -37,17 +36,13 @@ class ControlPointsServer:
                                 [0.0, 0.0, height],
                                 [-0.44, 0.0, height], 
                                 [-0.44, 0.0, height], 
-                                [-0.74, -0.3, height],
-                                [-0.94, -0.2, height],
-                                [-1.14, 0.0, height],
-                                [-1.24, 0.3, height],
-                                [-1.24, 0.3, height],
-                                [-1.24, 0.74, height],
-                                [-1.24, 0.74, height],
-                                [-1.68, 0.74, height],
-                                [-1.68, 0.74, height],
-                                [-2.12, 0.74, height],
-                                [-2.56, 0.74, height]
+                                [-0.74, -0.15, height],
+                                [-0.9, 0.0, height],
+                                [-0.9, 0.44, height],
+                                [-0.9, 0.44, height],
+                                [-1.34, 0.44, height],
+                                [-1.78, 0.44, height],
+                                [-2.22, 0.44, height]
         ]
         control_polygon_points = PolygonStamped()
         for i in range(0, len(self.control_points_)):

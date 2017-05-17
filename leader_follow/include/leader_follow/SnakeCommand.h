@@ -86,6 +86,8 @@ namespace snake_command{
     void directTrackGlobalTrajectory();
     void transformTrackGlobalTrajectory();
     inline tf::Vector3 vectorToVector3(std::vector<double> vec);
+    void getNextLink(tf::Vector3 &next_link, tf::Vector3 cur_link, double &joint_ang, double start_time);
+    void getNextLinkFromSpline(tf::Vector3 &next_link, tf::Vector3 cur_link, double link_length, double start_time);
     void getPreviousLink(tf::Vector3 &prev_link, tf::Vector3 cur_link, double &joint_ang, double start_time);
     void getPreviousLinkFromSpline(tf::Vector3 &prev_link, tf::Vector3 cur_link, double link_length, double start_time);
   };
