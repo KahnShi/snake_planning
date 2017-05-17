@@ -67,6 +67,7 @@ namespace snake_command{
     double m_traj_current_time;
     double m_traj_bias_start_time;
     double m_spline_segment_time;
+    tf::Vector3 m_traj_track_i_term_accumulation;
 
     /* Publisher */
     ros::Publisher m_pub_flight_nav;
@@ -83,8 +84,10 @@ namespace snake_command{
     void baseLinkOdomCallback(const nav_msgs::OdometryConstPtr& odom_msg);
     void controlCallback(const ros::TimerEvent& e);
     void directTrackGlobalTrajectory();
+    void transformTrackGlobalTrajectory();
     inline tf::Vector3 vectorToVector3(std::vector<double> vec);
-    
+    void getPreviousLink(tf::Vector3 &prev_link, tf::Vector3 cur_link, double &joint_ang, double start_time);
+    void getPreviousLinkFromSpline(tf::Vector3 &prev_link, tf::Vector3 cur_link, double link_length, double start_time);
   };
 }
 

@@ -29,8 +29,7 @@ namespace snake_command{
     m_timer = m_nh.createTimer(ros::Duration(m_control_period), &SnakeCommand::controlCallback, this);
 
     m_traj_start_time = -1.0;
-    // todo: mannually set
-    m_traj_bias_start_time = m_spline_segment_time * m_n_links;
+    m_traj_track_i_term_accumulation.setValue(0.0, 0.0, 0.0);
   }
 
   void SnakeCommand::controlCallback(const ros::TimerEvent& e)
@@ -42,7 +41,8 @@ namespace snake_command{
 
     m_traj_current_time = e.current_real.toSec();
 
-    directTrackGlobalTrajectory();
+    //directTrackGlobalTrajectory();
+    transformTrackGlobalTrajectory();
 
     /* velocity transform between link1 and link2 */
     // tf::Matrix3x3 rot_mat;
@@ -52,10 +52,46 @@ namespace snake_command{
     // std::cout << "v_l2: " << v_l2.x() << ", " << v_l2.y() << ", " << v_l2.z() << "\n";
   }
 
-  void SnakeCommand::directTrackGlobalTrajectory()
+  void SnakeCommand::getPreviousLink(tf::Vector3 &prev_link, tf::Vector3 cur_link, double &joint_ang, double start_time)
   {
-    bool yaw_mode = true;
-    double current_traj_time = m_traj_current_time - m_traj_start_time + m_traj_bias_start_time;
+    getPreviousLinkFromSpline(prev_link, cur_link, m_link_length, start_time);
+    joint_ang = atan2(prev_link.y() - cur_link.y(), prev_link.x() - cur_link.x());
+    if (joint_ang < 0)
+      joint_ang = -(3.14159 + joint_ang);
+    else
+      joint_ang = 3.14159 - joint_ang;
+  }
+
+  void SnakeCommand::getPreviousLinkFromSpline(tf::Vector3 &prev_link, tf::Vector3 cur_link, double link_length, double start_time)
+  {
+    double time_gap = 0.05;
+    while (1){
+      start_time += time_gap;
+      if (start_time > m_bspline_traj_ptr->m_tn){
+        start_time = m_bspline_traj_ptr->m_tn;
+        break;
+      }
+      tf::Vector3 point = vectorToVector3(m_bspline_traj_ptr->evaluate(start_time));
+      double dist = cur_link.distance(point);
+      if (link_length - dist > 0)
+        continue;
+      else
+        break;
+
+    }
+    prev_link = vectorToVector3(m_bspline_traj_ptr->evaluate(start_time));
+  }
+
+  void SnakeCommand::transformTrackGlobalTrajectory()
+  {
+    int link_id = 1; // start from 0 to 4
+    // todo: mannually set
+    m_traj_bias_start_time = m_spline_segment_time * (m_n_links + 1 - link_id);
+    bool yaw_mode = false;
+    // link2
+    m_traj_bias_start_time = m_spline_segment_time * (m_n_links - link_id);
+    double time_factor = 1.0;
+    double current_traj_time = (m_traj_current_time - m_traj_start_time) / time_factor + m_traj_bias_start_time;
     if (current_traj_time >= m_bspline_traj_ptr->m_tn){
       if (current_traj_time - m_bspline_traj_ptr->m_tn < 0.1)
         ROS_INFO("\nArrived at last control point. \n");
@@ -66,26 +102,124 @@ namespace snake_command{
       nav_msg.pos_xy_nav_mode = nav_msg.VEL_MODE;
       nav_msg.target_vel_x = 0.0;
       nav_msg.target_vel_y = 0.0;
+      nav_msg.psi_nav_mode = nav_msg.VEL_MODE;
+      nav_msg.target_psi = 0.0;
+      m_pub_flight_nav.publish(nav_msg);
+      return;
+    }
+    // link2
+    tf::Vector3 des_world_vel[5];
+    des_world_vel[link_id] = vectorToVector3(m_bspline_traj_ptr->evaluateDerive(current_traj_time)) / time_factor;
+    tf::Vector3 des_world_pos[5];
+    des_world_pos[link_id] = vectorToVector3(m_bspline_traj_ptr->evaluate(current_traj_time));
+    tf::Vector3 real_world_pos[5];
+    double des_joint_ang[5];
+    for (int i = 0; i < 5; ++i)
+      real_world_pos[i] = m_links_pos_ptr[i];
+    for (int i = link_id-1; i >= 0; --i){
+      //getPreviousLink(des_world_pos[i], des_world_pos[i+1], des_joint_ang[i+1], current_traj_time);
+      getPreviousLink(des_world_pos[i], real_world_pos[i+1], des_joint_ang[i+1], current_traj_time);
+      std::cout << "id " << i << "] ang: " << des_joint_ang[i+1] << ".\n";
+      std::cout << "prev_link:  " << des_world_pos[i].x() << ", " <<des_world_pos[i].y()
+                << ". cur_link: " << real_world_pos[i+1].x() << ", " << real_world_pos[i+1].y() << "\n";
+    }
+    std::cout << "\n";
+    for (int i = link_id; i <= 2; ++i)
+      des_joint_ang[i+1] = m_joints_ang_ptr[i+1];
+    sensor_msgs::JointState joints_msg;
+    joints_msg.position.push_back(des_joint_ang[1]);
+    joints_msg.position.push_back(des_joint_ang[2]);
+    joints_msg.position.push_back(des_joint_ang[3]);
+    m_pub_joints_ctrl.publish(joints_msg);
+
+    std::vector<double> des_yaw = m_bspline_traj_ptr->evaluateYaw(current_traj_time);
+
+    tf::Matrix3x3 r_z; r_z.setRPY(0, 0, m_base_link_ang.z());
+
+    /* pid control in trajectory tracking */
+    tf::Vector3 traj_track_p_term =  (des_world_pos[1] - real_world_pos[1]) * 0.45;
+    /* feedforward */
+    tf::Vector3 vel = des_world_vel[1] + traj_track_p_term;
+
+    /* yaw */
+    double yaw_p_term = des_yaw[1] - m_base_link_ang.getZ();
+    // std::cout << "snake yaw: " << m_base_link_ang.z() / 3.14 * 180.0 << ", des yaw: " << des_yaw[1] / 3.14 * 180.0 << ", yaw vel: " << des_yaw[0] / 3.14 * 180.0 << "\n";
+    if (yaw_p_term > 1.57)
+      yaw_p_term -= 3.14;
+    else if (yaw_p_term < -1.57)
+      yaw_p_term += 3.14;
+    double yaw_vel = des_yaw[0] + yaw_p_term * 1.0;
+    double yaw_pos = des_yaw[1];
+    /* Judge if the controller is locally based on uav coordinate. */
+    // if (!m_global_coordinate_control_mode){
+    //   uav_vel = r_z.inverse() * uav_vel;
+    // }
+
+    aerial_robot_base::FlightNav nav_msg;
+    nav_msg.header.frame_id = std::string("/world");
+    nav_msg.header.stamp = ros::Time::now();
+    nav_msg.header.seq = 1;
+    nav_msg.pos_xy_nav_mode = nav_msg.VEL_MODE;
+    nav_msg.target_vel_x = vel.getX();
+    nav_msg.target_vel_y = vel.getY();
+    if (yaw_mode){
+      // nav_msg.psi_nav_mode = nav_msg.VEL_MODE;
+      // nav_msg.target_psi = yaw_vel;
+      nav_msg.psi_nav_mode = nav_msg.POS_MODE;
+      nav_msg.target_psi = yaw_pos;
+    }
+    else{
+      nav_msg.psi_nav_mode = nav_msg.POS_MODE;
+      nav_msg.target_psi = 0.0;
+    }
+    m_pub_flight_nav.publish(nav_msg);
+
+  }
+
+  void SnakeCommand::directTrackGlobalTrajectory()
+  {
+    // todo: mannually set
+    m_traj_bias_start_time = m_spline_segment_time * m_n_links;
+    bool yaw_mode = false;
+    double current_traj_time = (m_traj_current_time - m_traj_start_time) + m_traj_bias_start_time;
+    if (current_traj_time >= m_bspline_traj_ptr->m_tn){
+      if (current_traj_time - m_bspline_traj_ptr->m_tn < 0.1)
+        ROS_INFO("\nArrived at last control point. \n");
+      aerial_robot_base::FlightNav nav_msg;
+      nav_msg.header.frame_id = std::string("/world");
+      nav_msg.header.stamp = ros::Time::now();
+      nav_msg.header.seq = 1;
+      nav_msg.pos_xy_nav_mode = nav_msg.VEL_MODE;
+      nav_msg.target_vel_x = 0.0;
+      nav_msg.target_vel_y = 0.0;
+      nav_msg.psi_nav_mode = nav_msg.VEL_MODE;
+      nav_msg.target_psi = 0.0;
       m_pub_flight_nav.publish(nav_msg);
       return;
     }
     tf::Vector3 des_world_vel = vectorToVector3(m_bspline_traj_ptr->evaluateDerive(current_traj_time));
     tf::Vector3 des_world_pos = vectorToVector3(m_bspline_traj_ptr->evaluate(current_traj_time));
     tf::Vector3 real_world_pos;
-    // link2
-    real_world_pos = m_links_pos_ptr[1];
-    std::vector<double> des_yaw = m_bspline_traj_ptr->evaluateYaw(current_traj_time);
+    // link1
+    real_world_pos = m_links_pos_ptr[0];
+    std::cout << "des world: " << current_traj_time << ": " << des_world_pos.x() << ", " << des_world_pos.y() << ", vel: "
+              << des_world_vel.x() << ", " << des_world_vel.y() << "\n" ;
+    std::cout << "real world: " << real_world_pos.x() << ", " << real_world_pos.y() << "\n\n";
 
+    std::vector<double> des_yaw = m_bspline_traj_ptr->evaluateYaw(current_traj_time);
     tf::Matrix3x3 r_z; r_z.setRPY(0, 0, m_base_link_ang.z());
 
     /* pid control in trajectory tracking */
-    tf::Vector3 traj_track_p_term =  (des_world_pos - real_world_pos) * 0.3;
+    tf::Vector3 traj_track_p_term =  (des_world_pos - real_world_pos) * 0.45;
+    m_traj_track_i_term_accumulation += (des_world_pos - real_world_pos) * m_control_period;
+    tf::Vector3 traj_track_i_term = m_traj_track_i_term_accumulation * 0.0 * 0.1;
+
     /* feedforward */
-    tf::Vector3 vel = des_world_vel + traj_track_p_term;
+    tf::Vector3 vel = des_world_vel + traj_track_p_term + traj_track_i_term;
 
     /* yaw */
     double yaw_p_term = des_yaw[1] - m_base_link_ang.getZ();
-    std::cout << "snake yaw: " << m_base_link_ang.z() / 3.14 * 180.0 << ", des yaw: " << des_yaw[1] / 3.14 * 180.0 << ", yaw vel: " << des_yaw[0] / 3.14 * 180.0 << "\n";
+    // std::cout << "snake yaw: " << m_base_link_ang.z() / 3.14 * 180.0 << ", des yaw: " << des_yaw[1] / 3.14 * 180.0 << ", yaw vel: " << des_yaw[0] / 3.14 * 180.0 << "\n";
     if (yaw_p_term > 1.57)
       yaw_p_term -= 3.14;
     else if (yaw_p_term < -1.57)
@@ -110,6 +244,10 @@ namespace snake_command{
       nav_msg.psi_nav_mode = nav_msg.POS_MODE;
       nav_msg.target_psi = yaw_pos;
     }
+    else{
+      nav_msg.psi_nav_mode = nav_msg.POS_MODE;
+      nav_msg.target_psi = 0.0;
+    }
     m_pub_flight_nav.publish(nav_msg);
 
   }
@@ -132,6 +270,8 @@ namespace snake_command{
       m_links_vel_ptr[i-1].setValue(link_twist.linear.x,
                                     link_twist.linear.y,
                                     link_twist.linear.z);
+      // std::cout << "/link" + std::to_string(i) << ": " << link_twist.linear.x << ", "
+      //           << link_twist.linear.y << ", " << link_twist.linear.z << "\n";
     }
   }
 

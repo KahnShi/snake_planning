@@ -53,7 +53,7 @@ namespace leader_follower_spline
     usleep(5000000);
     ROS_INFO("[LeaderFollowerSpline] Snake takeoff finished.");
     sensor_msgs::JointState joints_msg;
-    joints_msg.position.push_back(1.57);
+    joints_msg.position.push_back(0.0);
     joints_msg.position.push_back(1.57);
     joints_msg.position.push_back(1.57);
     m_pub_snake_joint_states.publish(joints_msg);
@@ -64,7 +64,7 @@ namespace leader_follower_spline
     nav_msg.header.stamp = ros::Time::now();
     nav_msg.header.seq = 1;
     nav_msg.pos_xy_nav_mode = nav_msg.POS_MODE;
-    nav_msg.target_pos_x = -0.44;
+    nav_msg.target_pos_x = 0.0;
     nav_msg.target_pos_y = 0.0;
     m_pub_snake_flight_nav.publish(nav_msg);
     usleep(5000000);
