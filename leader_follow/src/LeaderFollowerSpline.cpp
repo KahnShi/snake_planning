@@ -161,7 +161,7 @@ namespace leader_follower_spline
     }
 
     // add cylinder representing trees
-    // tree: -1.0, 0.  -2.3, 0.2  - 2.5, -0.9
+    // tree: -1.0, 0.  -2.3, 0.2  - 2.5, -0.82
     cylinder_marker.id = control_point_marker.id + 1;
     cylinder_marker.pose.position.x = -1.0;
     cylinder_marker.pose.position.y = 0.0;
@@ -186,7 +186,7 @@ namespace leader_follower_spline
 
     cylinder_marker.id += 1;
     cylinder_marker.pose.position.x = -2.5;
-    cylinder_marker.pose.position.y = -0.9;
+    cylinder_marker.pose.position.y = -0.82;
     control_point_markers.markers.push_back(cylinder_marker);
 
     m_pub_control_points_markers.publish(control_point_markers);
