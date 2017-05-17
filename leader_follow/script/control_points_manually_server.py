@@ -29,20 +29,26 @@ class ControlPointsServer:
 
     def manuallyPublish(self):
         height = 2.0
-        self.control_points_ = [[0.44, 0.44, height], 
-                                [0.44, 0.44, height], 
-                                [0.44, 0.0, height], 
-                                [0.44, 0.0, height], 
-                                [0.0, 0.0, height],
-                                [-0.44, 0.0, height], 
-                                [-0.44, 0.0, height], 
-                                [-0.74, -0.15, height],
-                                [-0.9, 0.0, height],
-                                [-0.9, 0.44, height],
-                                [-0.9, 0.44, height],
-                                [-1.34, 0.44, height],
-                                [-1.78, 0.44, height],
-                                [-2.22, 0.44, height]
+        self.control_points_ = [[0.0, 0.0, height],
+                                [-0.2, 0.0, height], 
+                                [-0.4, 0.0, height], 
+                                [-0.7, -0.3, height],
+                                [-1.0, -0.45, height],
+                                [-1.3, -0.45, height],
+                                [-1.6, -0.3, height],
+                                [-1.8, -0.15, height],
+                                [-2.0, 0.0, height],
+                                [-2.2, 0.0, height],
+                                [-2.5, 0.0, height],
+                                [-2.8, 0.0, height],
+                                [-3.1, 0.0, height],
+                                [-3.5, 0.0, height],
+                                [-4.0, 0.0, height],
+                                [-4.5, 0.0, height],
+                                [-5.0, 0.0, height],
+                                [-5.5, 0.0, height],
+                                [-5.75, 0.0, height],
+                                [-6.0, 0.0, height]
         ]
         control_polygon_points = PolygonStamped()
         for i in range(0, len(self.control_points_)):

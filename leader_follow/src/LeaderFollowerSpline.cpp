@@ -50,33 +50,37 @@ namespace leader_follower_spline
     m_pub_snake_start_flag.publish(msg);
     usleep(300000);
     m_pub_snake_takeoff_flag.publish(msg);
-    usleep(5000000);
+    usleep(7000000);
     ROS_INFO("[LeaderFollowerSpline] Snake takeoff finished.");
+    aerial_robot_base::FlightNav nav_yaw_msg;
+    nav_yaw_msg.header.frame_id = std::string("/world");
+    nav_yaw_msg.header.stamp = ros::Time::now();
+    nav_yaw_msg.header.seq = 1;
+    nav_yaw_msg.psi_nav_mode = nav_yaw_msg.POS_MODE;
+    nav_yaw_msg.target_psi = 0.0;
+    m_pub_snake_flight_nav.publish(nav_yaw_msg);
+    usleep(5000000);
     sensor_msgs::JointState joints_msg;
+    joints_msg.position.push_back(1.57);
     joints_msg.position.push_back(0.0);
-    joints_msg.position.push_back(1.57);
-    joints_msg.position.push_back(1.57);
+    joints_msg.position.push_back(0.0);
     m_pub_snake_joint_states.publish(joints_msg);
+    usleep(5000000);
+    // rotate to inital angle after transform
+    nav_yaw_msg.header.seq = 2;
+    m_pub_snake_flight_nav.publish(nav_yaw_msg);
     usleep(5000000);
     /* Fly to initial position */
     aerial_robot_base::FlightNav nav_msg;
     nav_msg.header.frame_id = std::string("/world");
     nav_msg.header.stamp = ros::Time::now();
-    nav_msg.header.seq = 1;
+    nav_msg.header.seq = 3;
     nav_msg.pos_xy_nav_mode = nav_msg.POS_MODE;
     nav_msg.target_pos_x = 0.0;
-    nav_msg.target_pos_y = 0.0;
+    nav_msg.target_pos_y = -0.44;
     m_pub_snake_flight_nav.publish(nav_msg);
     usleep(5000000);
     /* Change yaw angle to initial value */
-    aerial_robot_base::FlightNav nav_yaw_msg;
-    nav_yaw_msg.header.frame_id = std::string("/world");
-    nav_yaw_msg.header.stamp = ros::Time::now();
-    nav_yaw_msg.header.seq = 2;
-    nav_yaw_msg.psi_nav_mode = nav_msg.POS_MODE;
-    nav_yaw_msg.target_psi = 0.0;
-    m_pub_snake_flight_nav.publish(nav_yaw_msg);
-    usleep(5000000);
     /* Adjust to initial position again*/
     m_pub_snake_flight_nav.publish(nav_msg);
     usleep(2000000);
@@ -125,12 +129,17 @@ namespace leader_follower_spline
   void LeaderFollowerSpline::visualizeControlPoints()
   {
     visualization_msgs::MarkerArray control_point_markers;
-    visualization_msgs::Marker control_point_marker;
+    visualization_msgs::Marker control_point_marker, cylinder_marker;
     control_point_marker.ns = "control_points";
     control_point_marker.header.frame_id = std::string("/world");
     control_point_marker.header.stamp = ros::Time().now();
     control_point_marker.action = visualization_msgs::Marker::ADD;
     control_point_marker.type = visualization_msgs::Marker::SPHERE;
+    cylinder_marker.ns = "cylinders";
+    cylinder_marker.header.frame_id = std::string("/world");
+    cylinder_marker.header.stamp = ros::Time().now();
+    cylinder_marker.action = visualization_msgs::Marker::ADD;
+    cylinder_marker.type = visualization_msgs::Marker::CYLINDER;
 
     for (int i = 0; i < m_control_point_vec.size(); ++i){
       control_point_marker.id = i;
@@ -141,18 +150,45 @@ namespace leader_follower_spline
       control_point_marker.pose.orientation.y = 0.0;
       control_point_marker.pose.orientation.z = 0.0;
       control_point_marker.pose.orientation.w = 1.0;
-      control_point_marker.scale.x = 0.15;
-      control_point_marker.scale.y = 0.15;
-      control_point_marker.scale.z = 0.15;
-      control_point_marker.color.a = 1;
+      control_point_marker.scale.x = 0.05;
+      control_point_marker.scale.y = 0.05;
+      control_point_marker.scale.z = 0.05;
+      control_point_marker.color.a = 0.5;
       control_point_marker.color.r = 0.0f;
       control_point_marker.color.g = 1.0f;
       control_point_marker.color.b = 0.0f;
-      if (i < m_n_snake_links + 1){
-        control_point_marker.color.a = 0.4;
-      }
       control_point_markers.markers.push_back(control_point_marker);
     }
+
+    // add cylinder representing trees
+    // tree: -1.0, 0.  -2.3, 0.2  - 2.5, -0.9
+    cylinder_marker.id = control_point_marker.id + 1;
+    cylinder_marker.pose.position.x = -1.0;
+    cylinder_marker.pose.position.y = 0.0;
+    cylinder_marker.pose.position.z = 0.0;
+    cylinder_marker.pose.orientation.x = 0.0;
+    cylinder_marker.pose.orientation.y = 0.0;
+    cylinder_marker.pose.orientation.z = 0.0;
+    cylinder_marker.pose.orientation.w = 1.0;
+    cylinder_marker.scale.x = 0.3;
+    cylinder_marker.scale.y = 0.3;
+    cylinder_marker.scale.z = 10.0;
+    cylinder_marker.color.a = 1.0;
+    cylinder_marker.color.r = 162.0f / 255.0f;
+    cylinder_marker.color.g = 154.0f / 255.0f;
+    cylinder_marker.color.b = 103.0f / 255.0f;
+    control_point_markers.markers.push_back(cylinder_marker);
+
+    cylinder_marker.id += 1;
+    cylinder_marker.pose.position.x = -2.3;
+    cylinder_marker.pose.position.y = 0.2;
+    control_point_markers.markers.push_back(cylinder_marker);
+
+    cylinder_marker.id += 1;
+    cylinder_marker.pose.position.x = -2.5;
+    cylinder_marker.pose.position.y = -0.9;
+    control_point_markers.markers.push_back(cylinder_marker);
+
     m_pub_control_points_markers.publish(control_point_markers);
   }
 

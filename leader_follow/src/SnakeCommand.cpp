@@ -41,8 +41,8 @@ namespace snake_command{
 
     m_traj_current_time = e.current_real.toSec();
 
-    //directTrackGlobalTrajectory();
-    transformTrackGlobalTrajectory();
+    directTrackGlobalTrajectory();
+    //transformTrackGlobalTrajectory();
 
     /* velocity transform between link1 and link2 */
     // tf::Matrix3x3 rot_mat;
@@ -214,7 +214,7 @@ namespace snake_command{
   void SnakeCommand::directTrackGlobalTrajectory()
   {
     // todo: mannually set
-    m_traj_bias_start_time = m_spline_segment_time * m_n_links;
+    m_traj_bias_start_time = 0.0;//m_spline_segment_time * m_n_links;
     bool yaw_mode = false;
     double current_traj_time = (m_traj_current_time - m_traj_start_time) + m_traj_bias_start_time;
     if (current_traj_time >= m_bspline_traj_ptr->m_tn){
