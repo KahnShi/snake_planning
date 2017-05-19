@@ -56,6 +56,7 @@ namespace snake_command{
   {
     getNextLinkFromSpline(next_link, cur_link, m_link_length, start_time);
     joint_ang = atan2(next_link.y() - cur_link.y(), next_link.x() - cur_link.x());
+    //joint_ang -= m_base_link_ang.z();
   }
 
   void SnakeCommand::getNextLinkFromSpline(tf::Vector3 &next_link, tf::Vector3 cur_link, double link_length, double start_time)
@@ -81,11 +82,13 @@ namespace snake_command{
   void SnakeCommand::getPreviousLink(tf::Vector3 &prev_link, tf::Vector3 cur_link, double &joint_ang, double start_time)
   {
     getPreviousLinkFromSpline(prev_link, cur_link, m_link_length, start_time);
-    joint_ang = atan2(prev_link.y() - cur_link.y(), prev_link.x() - cur_link.x());
-    if (joint_ang < 0)
-      joint_ang = -(3.14159 + joint_ang);
-    else
-      joint_ang = 3.14159 - joint_ang;
+    //joint_ang = atan2(prev_link.y() - cur_link.y(), prev_link.x() - cur_link.x());
+    // if (joint_ang < 0)
+    //   joint_ang = -(3.14159 + joint_ang);
+    // else
+    //   joint_ang = 3.14159 - joint_ang;
+    joint_ang = atan2(prev_link.y() - cur_link.y(), -(prev_link.x() - cur_link.x()));
+    joint_ang += m_base_link_ang.z();
   }
 
   void SnakeCommand::getPreviousLinkFromSpline(tf::Vector3 &prev_link, tf::Vector3 cur_link, double link_length, double start_time)
@@ -112,8 +115,9 @@ namespace snake_command{
   {
     int link_id = 1; // start from 0 to 4
     // todo: mannually set
-    m_traj_bias_start_time = m_spline_segment_time * (m_n_links + 1 - link_id);
-    bool yaw_mode = false;
+    //m_traj_bias_start_time = m_spline_segment_time * (m_n_links + 1 - link_id);
+    m_traj_bias_start_time = 3.0;
+    bool yaw_mode = true;
     bool next_link_mode = true;
     // link2
     m_traj_bias_start_time = m_spline_segment_time * (m_n_links - link_id);
@@ -144,17 +148,25 @@ namespace snake_command{
     for (int i = 0; i < 5; ++i)
       real_world_pos[i] = m_links_pos_ptr[i];
     for (int i = link_id-1; i >= 0; --i){
-      //getPreviousLink(des_world_pos[i], des_world_pos[i+1], des_joint_ang[i+1], current_traj_time);
-      getPreviousLink(des_world_pos[i], real_world_pos[i+1], des_joint_ang[i+1], current_traj_time);
-      std::cout << "id " << i << "] ang: " << des_joint_ang[i+1] << ".\n";
-      std::cout << "prev_link:  " << des_world_pos[i].x() << ", " <<des_world_pos[i].y()
-                << ". cur_link: " << real_world_pos[i+1].x() << ", " << real_world_pos[i+1].y() << "\n";
+      getPreviousLink(des_world_pos[i], des_world_pos[i+1], des_joint_ang[i+1], current_traj_time);
+      //getPreviousLink(des_world_pos[i], real_world_pos[i+1], des_joint_ang[i+1], current_traj_time);
+      // std::cout << "id " << i << "] ang: " << des_joint_ang[i+1] << ".\n";
+      // std::cout << "prev_link:  " << des_world_pos[i].x() << ", " <<des_world_pos[i].y()
+      //           << ". cur_link: " << real_world_pos[i+1].x() << ", " << real_world_pos[i+1].y() << "\n";
     }
     std::cout << "\n";
     // get one next link from "base link"
     if (next_link_mode){
-      getNextLink(des_world_pos[link_id+2], real_world_pos[link_id+1], des_joint_ang[link_id+1], current_traj_time);
-      for (int i = link_id + 1; i <= 2; ++i)
+      getNextLink(des_world_pos[link_id+2], des_world_pos[link_id+1], des_joint_ang[link_id+1], current_traj_time - m_spline_segment_time);
+      //des_joint_ang[link_id+1] -= m_base_link_ang.z();
+      des_joint_ang[link_id+1] -= atan2(-real_world_pos[link_id].y() + real_world_pos[link_id+1].y(),
+                                        -real_world_pos[link_id].x() + real_world_pos[link_id+1].x());
+      //getNextLink(des_world_pos[link_id+2], real_world_pos[link_id+1], des_joint_ang[link_id+1], current_traj_time);
+      // next next link
+      getNextLink(des_world_pos[link_id+3], des_world_pos[link_id+2], des_joint_ang[link_id+2], current_traj_time - m_spline_segment_time * 2);
+      des_joint_ang[link_id+2] -= atan2(-real_world_pos[link_id+1].y() + real_world_pos[link_id+2].y(),
+                                        -real_world_pos[link_id+1].x() + real_world_pos[link_id+2].x());
+      for (int i = link_id + 2; i <= 2; ++i)
         des_joint_ang[i+1] = m_joints_ang_ptr[i+1];
     }
     else{
@@ -167,8 +179,6 @@ namespace snake_command{
     joints_msg.position.push_back(des_joint_ang[3]);
     m_pub_joints_ctrl.publish(joints_msg);
 
-    std::vector<double> des_yaw = m_bspline_traj_ptr->evaluateYaw(current_traj_time);
-
     tf::Matrix3x3 r_z; r_z.setRPY(0, 0, m_base_link_ang.z());
 
     /* pid control in trajectory tracking */
@@ -177,18 +187,37 @@ namespace snake_command{
     tf::Vector3 vel = des_world_vel[1] + traj_track_p_term;
 
     /* yaw */
-    double yaw_p_term = des_yaw[1] - m_base_link_ang.getZ();
-    // std::cout << "snake yaw: " << m_base_link_ang.z() / 3.14 * 180.0 << ", des yaw: " << des_yaw[1] / 3.14 * 180.0 << ", yaw vel: " << des_yaw[0] / 3.14 * 180.0 << "\n";
-    if (yaw_p_term > 1.57)
-      yaw_p_term -= 3.14;
-    else if (yaw_p_term < -1.57)
-      yaw_p_term += 3.14;
-    double yaw_vel = des_yaw[0] + yaw_p_term * 1.0;
-    double yaw_pos = des_yaw[1];
-    /* Judge if the controller is locally based on uav coordinate. */
-    // if (!m_global_coordinate_control_mode){
-    //   uav_vel = r_z.inverse() * uav_vel;
-    // }
+    double yaw_pos_control_up_bound = 0.5;
+    /* method 1: use evaluateYaw function in bspline class */
+    // std::vector<double> des_yaw = m_bspline_traj_ptr->evaluateYaw(current_traj_time);
+    // double yaw_p_term = des_yaw[1] - m_base_link_ang.getZ();
+    // // std::cout << "snake yaw: " << m_base_link_ang.z() / 3.14 * 180.0 << ", des yaw: " << des_yaw[1] / 3.14 * 180.0 << ", yaw vel: " << des_yaw[0] / 3.14 * 180.0 << "\n";
+    // if (yaw_p_term > 1.57)
+    //   yaw_p_term -= 3.14;
+    // else if (yaw_p_term < -1.57)
+    //   yaw_p_term += 3.14;
+    // double yaw_vel = des_yaw[0] + yaw_p_term * 1.0;
+    // double yaw_pos = des_yaw[1];
+
+    /* method 2: directly from current velocity */
+    double yaw_pos;
+    double des_yaw = atan2(-des_world_vel[1].y(), -des_world_vel[1].x());
+    double real_yaw = m_base_link_ang.getZ();
+    double dist_yaw = des_yaw - real_yaw;
+    yaw_pos = des_yaw;
+    /* detect whether yaw changes is larger than control uppper bound */
+    if ((fabs(dist_yaw) > yaw_pos_control_up_bound) &&
+        (2*M_PI - fabs(dist_yaw) > yaw_pos_control_up_bound)){
+      /* assume yaw changes is in positive direction */
+      double test_yaw = real_yaw + fabs(dist_yaw);
+      /* detect whether assumption is correct */
+      if (fabs(des_yaw - test_yaw) > 0.1 ||
+          2*M_PI - fabs(des_yaw - test_yaw) > 0.1)
+        yaw_pos = real_yaw + yaw_pos_control_up_bound;
+      else
+        yaw_pos = real_yaw - yaw_pos_control_up_bound;
+    }
+    std::cout << "des, real, final: " << des_yaw << ", " << des_yaw << ", " << yaw_pos << "\n\n";
 
     aerial_robot_base::FlightNav nav_msg;
     nav_msg.header.frame_id = std::string("/world");
@@ -321,6 +350,12 @@ namespace snake_command{
     rot_mat.setRotation(q);
     tfScalar r,p,y;
     rot_mat.getRPY(r, p, y);
+    if (r >= M_PI)
+      r -= 2 * M_PI;
+    if (p >= M_PI)
+      p -= 2 * M_PI;
+    if (y >= M_PI)
+      y -= 2 * M_PI;
     m_base_link_ang.setValue(r, p, y);
     m_base_link_pos.setValue(odom_msg->pose.pose.position.x,
                              odom_msg->pose.pose.position.y,

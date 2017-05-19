@@ -29,20 +29,20 @@ class ControlPointsServer:
 
     def manuallyPublish(self):
         height = 2.0
-        self.control_points_ = [[0.44, 0.44, height], 
+        self.control_points_ = [[0.44, 0.88, height], 
+                                [0.44, 0.44, height], 
                                 [0.44, 0.44, height], 
                                 [0.44, 0.0, height], 
-                                [0.44, 0.0, height], 
-                                [0.0, 0.0, height],
-                                [-0.44, 0.0, height], 
-                                [-0.44, 0.0, height], 
-                                [-0.74, -0.15, height],
-                                [-0.9, 0.0, height],
-                                [-0.9, 0.44, height],
-                                [-0.9, 0.44, height],
-                                [-1.34, 0.44, height],
-                                [-1.78, 0.44, height],
-                                [-2.22, 0.44, height]
+                                [0.44, 0.0, height],
+                                [0.0, 0.0, height], 
+                                [-0.44, 0.0, height],
+                                [-0.64, 0.3, height],
+                                [-0.94, 0.6, height],
+                                [-1.34, 0.6, height]
+                                # [-0.88, 0.0, height], 
+                                # [-1.18, 0.3, height],
+                                # [-1.48, 0.6, height],
+                                # [-1.88, 0.6, height]
         ]
         control_polygon_points = PolygonStamped()
         for i in range(0, len(self.control_points_)):

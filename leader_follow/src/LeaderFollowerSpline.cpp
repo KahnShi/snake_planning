@@ -55,7 +55,7 @@ namespace leader_follower_spline
     sensor_msgs::JointState joints_msg;
     joints_msg.position.push_back(0.0);
     joints_msg.position.push_back(1.57);
-    joints_msg.position.push_back(1.57);
+    joints_msg.position.push_back(0.0);
     m_pub_snake_joint_states.publish(joints_msg);
     usleep(5000000);
     /* Fly to initial position */
@@ -125,14 +125,20 @@ namespace leader_follower_spline
   void LeaderFollowerSpline::visualizeControlPoints()
   {
     visualization_msgs::MarkerArray control_point_markers;
-    visualization_msgs::Marker control_point_marker;
+    visualization_msgs::Marker control_point_marker, cylinder_marker;
     control_point_marker.ns = "control_points";
     control_point_marker.header.frame_id = std::string("/world");
     control_point_marker.header.stamp = ros::Time().now();
     control_point_marker.action = visualization_msgs::Marker::ADD;
     control_point_marker.type = visualization_msgs::Marker::SPHERE;
 
-    for (int i = 0; i < m_control_point_vec.size(); ++i){
+    cylinder_marker.ns = "cylinders";
+    cylinder_marker.header.frame_id = std::string("/world");
+    cylinder_marker.header.stamp = ros::Time().now();
+    cylinder_marker.action = visualization_msgs::Marker::ADD;
+    cylinder_marker.type = visualization_msgs::Marker::CYLINDER;
+    
+    for (int i = 0; i < m_control_point_vec.size()-1; ++i){
       control_point_marker.id = i;
       control_point_marker.pose.position.x = m_control_point_vec[i].x;
       control_point_marker.pose.position.y = m_control_point_vec[i].y;
@@ -153,6 +159,31 @@ namespace leader_follower_spline
       }
       control_point_markers.markers.push_back(control_point_marker);
     }
+
+    // add cylinder representing trees
+    // tree: -1.0, 0.3.  - 2.5, -0.82
+    cylinder_marker.id = control_point_marker.id + 1;
+    cylinder_marker.pose.position.x = 0.0;
+    cylinder_marker.pose.position.y = 0.6;
+    cylinder_marker.pose.position.z = 0.0;
+    cylinder_marker.pose.orientation.x = 0.0;
+    cylinder_marker.pose.orientation.y = 0.0;
+    cylinder_marker.pose.orientation.z = 0.0;
+    cylinder_marker.pose.orientation.w = 1.0;
+    cylinder_marker.scale.x = 0.3;
+    cylinder_marker.scale.y = 0.3;
+    cylinder_marker.scale.z = 10.0;
+    cylinder_marker.color.a = 1.0;
+    cylinder_marker.color.r = 162.0f / 255.0f;
+    cylinder_marker.color.g = 154.0f / 255.0f;
+    cylinder_marker.color.b = 103.0f / 255.0f;
+    control_point_markers.markers.push_back(cylinder_marker);
+
+    cylinder_marker.id += 1;
+    cylinder_marker.pose.position.x = -0.0;
+    cylinder_marker.pose.position.y = -0.6;
+    control_point_markers.markers.push_back(cylinder_marker);
+    
     m_pub_control_points_markers.publish(control_point_markers);
   }
 
