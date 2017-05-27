@@ -52,6 +52,25 @@ namespace snake_command{
     // std::cout << "v_l2: " << v_l2.x() << ", " << v_l2.y() << ", " << v_l2.z() << "\n";
   }
 
+  void SnakeCommand::getNextLink(tf::Vector3 &next_link, tf::Vector3 cur_link, double &joint_ang, tf::Vector3 cur_link_real, double cur_time)
+  {
+    double time_gap = 0.05;
+    double test_time = m_bspline_traj_ptr->m_t0;
+    double mininum_dist = 100000.0, start_time = test_time;
+    while (1){
+      if (test_time > m_bspline_traj_ptr->m_tn)
+        break;
+      tf::Vector3 point = vectorToVector3(m_bspline_traj_ptr->evaluate(test_time));
+      double dist = cur_link_real.distance(point);
+      if (dist < mininum_dist){
+        mininum_dist = dist;
+        start_time = test_time;
+      }
+      test_time += time_gap;
+    }
+    getNextLink(next_link, cur_link, joint_ang, start_time);
+  }
+
   void SnakeCommand::getNextLink(tf::Vector3 &next_link, tf::Vector3 cur_link, double &joint_ang, double start_time)
   {
     getNextLinkFromSpline(next_link, cur_link, m_link_length, start_time);
@@ -77,6 +96,26 @@ namespace snake_command{
 
     }
     next_link = vectorToVector3(m_bspline_traj_ptr->evaluate(start_time));
+  }
+
+  void SnakeCommand::getPreviousLink(tf::Vector3 &prev_link, tf::Vector3 cur_link, double &joint_ang, tf::Vector3 cur_link_real, double cur_time)
+  {
+    double time_gap = 0.05;
+    double test_time = m_bspline_traj_ptr->m_t0;
+    double mininum_dist = 100000.0, start_time = test_time;
+    while (1){
+      if (test_time > m_bspline_traj_ptr->m_tn)
+        break;
+      tf::Vector3 point = vectorToVector3(m_bspline_traj_ptr->evaluate(test_time));
+      double dist = cur_link_real.distance(point);
+      if (dist < mininum_dist){
+        mininum_dist = dist;
+        start_time = test_time;
+      }
+      test_time += time_gap;
+    }
+    getPreviousLink(prev_link, cur_link, joint_ang, start_time);
+
   }
 
   void SnakeCommand::getPreviousLink(tf::Vector3 &prev_link, tf::Vector3 cur_link, double &joint_ang, double start_time)
@@ -116,7 +155,7 @@ namespace snake_command{
     int link_id = 1; // start from 0 to 4
     // todo: mannually set
     //m_traj_bias_start_time = m_spline_segment_time * (m_n_links + 1 - link_id);
-    m_traj_bias_start_time = 3.0;
+    m_traj_bias_start_time = 2.0;
     bool yaw_mode = true;
     bool next_link_mode = true;
     // link2
@@ -126,16 +165,23 @@ namespace snake_command{
     if (current_traj_time >= m_bspline_traj_ptr->m_tn){
       if (current_traj_time - m_bspline_traj_ptr->m_tn < 0.1)
         ROS_INFO("\nArrived at last control point. \n");
+      if (current_traj_time - m_bspline_traj_ptr->m_tn < 0.5)
+        return;
       aerial_robot_base::FlightNav nav_msg;
       nav_msg.header.frame_id = std::string("/world");
       nav_msg.header.stamp = ros::Time::now();
       nav_msg.header.seq = 1;
       nav_msg.pos_xy_nav_mode = nav_msg.VEL_MODE;
-      nav_msg.target_vel_x = 0.0;
+      nav_msg.target_vel_x = -0.2;
       nav_msg.target_vel_y = 0.0;
       nav_msg.psi_nav_mode = nav_msg.VEL_MODE;
       nav_msg.target_psi = 0.0;
       m_pub_flight_nav.publish(nav_msg);
+      // sensor_msgs::JointState joints_msg;
+      // joints_msg.position.push_back(0.0);
+      // joints_msg.position.push_back(-1.57);
+      // joints_msg.position.push_back(0.0);
+      // m_pub_joints_ctrl.publish(joints_msg);
       return;
     }
     // link2
@@ -148,8 +194,12 @@ namespace snake_command{
     for (int i = 0; i < 5; ++i)
       real_world_pos[i] = m_links_pos_ptr[i];
     for (int i = link_id-1; i >= 0; --i){
-      getPreviousLink(des_world_pos[i], des_world_pos[i+1], des_joint_ang[i+1], current_traj_time);
+      // method 1:
       //getPreviousLink(des_world_pos[i], real_world_pos[i+1], des_joint_ang[i+1], current_traj_time);
+      // method 2:
+      //getPreviousLink(des_world_pos[i], des_world_pos[i+1], des_joint_ang[i+1], current_traj_time);
+      // method 3:
+      getPreviousLink(des_world_pos[i], real_world_pos[i+1], des_joint_ang[i+1], real_world_pos[i+1], current_traj_time);
       // std::cout << "id " << i << "] ang: " << des_joint_ang[i+1] << ".\n";
       // std::cout << "prev_link:  " << des_world_pos[i].x() << ", " <<des_world_pos[i].y()
       //           << ". cur_link: " << real_world_pos[i+1].x() << ", " << real_world_pos[i+1].y() << "\n";
@@ -157,13 +207,18 @@ namespace snake_command{
     std::cout << "\n";
     // get one next link from "base link"
     if (next_link_mode){
-      getNextLink(des_world_pos[link_id+2], des_world_pos[link_id+1], des_joint_ang[link_id+1], current_traj_time - m_spline_segment_time);
-      //des_joint_ang[link_id+1] -= m_base_link_ang.z();
+      // method 1:
+      //getNextLink(des_world_pos[link_id+2], des_world_pos[link_id+1], des_joint_ang[link_id+1], current_traj_time - m_spline_segment_time);
+      // method 2:
+      //getNextLink(des_world_pos[link_id+2], des_world_pos[link_id+1], des_joint_ang[link_id+1], real_world_pos[link_id+1], current_traj_time);
+      // method 3:
+      getNextLink(des_world_pos[link_id+2], real_world_pos[link_id+1], des_joint_ang[link_id+1], real_world_pos[link_id+1], current_traj_time);
       des_joint_ang[link_id+1] -= atan2(-real_world_pos[link_id].y() + real_world_pos[link_id+1].y(),
                                         -real_world_pos[link_id].x() + real_world_pos[link_id+1].x());
-      //getNextLink(des_world_pos[link_id+2], real_world_pos[link_id+1], des_joint_ang[link_id+1], current_traj_time);
       // next next link
-      getNextLink(des_world_pos[link_id+3], des_world_pos[link_id+2], des_joint_ang[link_id+2], current_traj_time - m_spline_segment_time * 2);
+      //getNextLink(des_world_pos[link_id+3], des_world_pos[link_id+2], des_joint_ang[link_id+2], current_traj_time - m_spline_segment_time * 2);
+      //getNextLink(des_world_pos[link_id+3], des_world_pos[link_id+2], des_joint_ang[link_id+2], real_world_pos[link_id+2], current_traj_time);
+      getNextLink(des_world_pos[link_id+3], real_world_pos[link_id+2], des_joint_ang[link_id+2], real_world_pos[link_id+2], current_traj_time);
       des_joint_ang[link_id+2] -= atan2(-real_world_pos[link_id+1].y() + real_world_pos[link_id+2].y(),
                                         -real_world_pos[link_id+1].x() + real_world_pos[link_id+2].x());
       for (int i = link_id + 2; i <= 2; ++i)
@@ -182,7 +237,7 @@ namespace snake_command{
     tf::Matrix3x3 r_z; r_z.setRPY(0, 0, m_base_link_ang.z());
 
     /* pid control in trajectory tracking */
-    tf::Vector3 traj_track_p_term =  (des_world_pos[1] - real_world_pos[1]) * 0.45;
+    tf::Vector3 traj_track_p_term =  (des_world_pos[1] - real_world_pos[1]) * 0.45; //0.45
     /* feedforward */
     tf::Vector3 vel = des_world_vel[1] + traj_track_p_term;
 

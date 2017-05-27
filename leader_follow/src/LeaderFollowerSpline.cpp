@@ -138,7 +138,7 @@ namespace leader_follower_spline
     cylinder_marker.action = visualization_msgs::Marker::ADD;
     cylinder_marker.type = visualization_msgs::Marker::CYLINDER;
     
-    for (int i = 0; i < m_control_point_vec.size()-1; ++i){
+    for (int i = 0; i < m_control_point_vec.size(); ++i){
       control_point_marker.id = i;
       control_point_marker.pose.position.x = m_control_point_vec[i].x;
       control_point_marker.pose.position.y = m_control_point_vec[i].y;
